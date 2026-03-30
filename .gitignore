@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log*
 tmp-server.err.log
 tmp-server.out.log
+*.bkp
 
 uploads/*
 !uploads/.gitkeep
