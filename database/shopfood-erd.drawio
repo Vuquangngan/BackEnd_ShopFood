@@ -1,0 +1,117 @@
+<mxfile compressed="false" host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.5.2 Chrome/142.0.7444.265 Electron/39.6.1 Safari/537.36" version="29.5.2">
+  <diagram id="shopfood-erd" name="Shopfood ERD">
+    <mxGraphModel dx="1028" dy="611" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="legend" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;Shopfood ERD&lt;/b&gt;&lt;br/&gt;PK = Primary Key&lt;br/&gt;FK = Foreign Key&lt;br/&gt;Arrow direction: child FK -&amp;gt; parent PK" vertex="1">
+          <mxGeometry height="100" width="270" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="users" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;users&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;username&lt;br/&gt;email&lt;br/&gt;password&lt;br/&gt;phone&lt;br/&gt;avatar_url&lt;br/&gt;role&lt;br/&gt;status" vertex="1">
+          <mxGeometry height="190" width="240" x="40" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="user_addresses" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;user_addresses&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;full_name&lt;br/&gt;phone&lt;br/&gt;address_line&lt;br/&gt;ward&lt;br/&gt;district&lt;br/&gt;city&lt;br/&gt;is_default" vertex="1">
+          <mxGeometry height="220" width="240" x="40" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="carts" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;carts&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;status" vertex="1">
+          <mxGeometry height="120" width="240" x="40" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="orders" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;orders&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;FK: coupon_id -&amp;gt; coupons.id&lt;br/&gt;order_code&lt;br/&gt;customer_name&lt;br/&gt;customer_phone&lt;br/&gt;shipping_address&lt;br/&gt;payment_method&lt;br/&gt;payment_status&lt;br/&gt;status&lt;br/&gt;subtotal&lt;br/&gt;shipping_fee&lt;br/&gt;discount_amount&lt;br/&gt;total_amount" vertex="1">
+          <mxGeometry height="300" width="260" x="40" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="recipe_favorites" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipe_favorites&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;FK: recipe_id -&amp;gt; recipes.id" vertex="1">
+          <mxGeometry height="130" width="260" x="40" y="1180" as="geometry" />
+        </mxCell>
+        <mxCell id="recipe_reviews" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipe_reviews&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;FK: recipe_id -&amp;gt; recipes.id&lt;br/&gt;rating&lt;br/&gt;comment" vertex="1">
+          <mxGeometry height="160" width="260" x="40" y="1340" as="geometry" />
+        </mxCell>
+        <mxCell id="categories" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;categories&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: parent_id -&amp;gt; categories.id&lt;br/&gt;name&lt;br/&gt;slug&lt;br/&gt;description&lt;br/&gt;image_url&lt;br/&gt;is_active" vertex="1">
+          <mxGeometry height="190" width="240" x="360" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="products" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;products&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: category_id -&amp;gt; categories.id&lt;br/&gt;name&lt;br/&gt;slug&lt;br/&gt;sku&lt;br/&gt;price&lt;br/&gt;sale_price&lt;br/&gt;stock_quantity&lt;br/&gt;unit&lt;br/&gt;thumbnail_url&lt;br/&gt;is_featured&lt;br/&gt;status" vertex="1">
+          <mxGeometry height="270" width="260" x="360" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="coupons" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;coupons&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;code&lt;br/&gt;discount_type&lt;br/&gt;discount_value&lt;br/&gt;min_order_value&lt;br/&gt;max_discount_value&lt;br/&gt;start_date&lt;br/&gt;end_date&lt;br/&gt;usage_limit&lt;br/&gt;used_count&lt;br/&gt;is_active" vertex="1">
+          <mxGeometry height="230" width="240" x="360" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="recipes" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipes&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: author_id -&amp;gt; users.id&lt;br/&gt;title&lt;br/&gt;slug&lt;br/&gt;description&lt;br/&gt;image_url&lt;br/&gt;prep_time_minutes&lt;br/&gt;cook_time_minutes&lt;br/&gt;servings&lt;br/&gt;difficulty&lt;br/&gt;calories&lt;br/&gt;status" vertex="1">
+          <mxGeometry height="270" width="260" x="360" y="1030" as="geometry" />
+        </mxCell>
+        <mxCell id="product_images" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;product_images&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: product_id -&amp;gt; products.id&lt;br/&gt;image_url&lt;br/&gt;sort_order" vertex="1">
+          <mxGeometry height="140" width="250" x="700" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cart_items" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;cart_items&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: cart_id -&amp;gt; carts.id&lt;br/&gt;FK: product_id -&amp;gt; products.id&lt;br/&gt;quantity&lt;br/&gt;unit_price" vertex="1">
+          <mxGeometry height="160" width="250" x="700" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="order_items" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;order_items&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: order_id -&amp;gt; orders.id&lt;br/&gt;FK: product_id -&amp;gt; products.id&lt;br/&gt;product_name&lt;br/&gt;unit_price&lt;br/&gt;quantity&lt;br/&gt;line_total" vertex="1">
+          <mxGeometry height="190" width="260" x="700" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="recipe_ingredients" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipe_ingredients&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: recipe_id -&amp;gt; recipes.id&lt;br/&gt;FK: product_id -&amp;gt; products.id&lt;br/&gt;ingredient_name&lt;br/&gt;quantity&lt;br/&gt;unit&lt;br/&gt;note&lt;br/&gt;sort_order" vertex="1">
+          <mxGeometry height="210" width="270" x="700" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="recipe_steps" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipe_steps&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: recipe_id -&amp;gt; recipes.id&lt;br/&gt;step_number&lt;br/&gt;instruction&lt;br/&gt;image_url" vertex="1">
+          <mxGeometry height="160" width="250" x="700" y="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_user_addresses_users" edge="1" parent="1" source="user_addresses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_carts_users" edge="1" parent="1" source="carts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orders_users" edge="1" parent="1" source="orders" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipes_users" edge="1" parent="1" source="recipes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="author_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_favorites_users" edge="1" parent="1" source="recipe_favorites" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_reviews_users" edge="1" parent="1" source="recipe_reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_categories_parent" edge="1" parent="1" source="categories" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;loopDirection=180;" target="categories" value="parent_id">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="650" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_products_categories" edge="1" parent="1" source="products" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="categories" value="category_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_product_images_products" edge="1" parent="1" source="product_images" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="products" value="product_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_cart_items_carts" edge="1" parent="1" source="cart_items" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="carts" value="cart_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_cart_items_products" edge="1" parent="1" source="cart_items" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="products" value="product_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_orders_coupons" edge="1" parent="1" source="orders" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="coupons" value="coupon_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_order_items_orders" edge="1" parent="1" source="order_items" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="orders" value="order_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_order_items_products" edge="1" parent="1" source="order_items" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="products" value="product_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_ingredients_recipes" edge="1" parent="1" source="recipe_ingredients" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="recipes" value="recipe_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_ingredients_products" edge="1" parent="1" source="recipe_ingredients" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="products" value="product_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_steps_recipes" edge="1" parent="1" source="recipe_steps" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="recipes" value="recipe_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_favorites_recipes" edge="1" parent="1" source="recipe_favorites" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="recipes" value="recipe_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_recipe_reviews_recipes" edge="1" parent="1" source="recipe_reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="recipes" value="recipe_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,8 @@
+node_modules/
+.env
+npm-debug.log*
+tmp-server.err.log
+tmp-server.out.log
+
+uploads/*
+!uploads/.gitkeep
