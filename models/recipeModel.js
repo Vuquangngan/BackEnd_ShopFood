@@ -3,6 +3,7 @@ const {
     sequelize,
     Product,
     Recipe,
+    RecipeCategory,
     RecipeFavorite,
     RecipeIngredient,
     RecipeReview,
@@ -19,6 +20,7 @@ function createRecipeError(message, statusCode = 400) {
 
 const RECIPE_FIELDS = [
     "author_id",
+    "recipe_category_id",
     "title",
     "slug",
     "description",
@@ -104,6 +106,19 @@ function localizeProduct(product) {
     });
 }
 
+function localizeRecipeCategory(category) {
+    if (!category) return null;
+
+    return addVietnameseAliases(category, {
+        name: "ten_danh_muc",
+        slug: "duong_dan_slug",
+        description: "mo_ta",
+        image_url: "duong_dan_anh",
+        color_hex: "ma_mau",
+        is_active: "dang_hien_thi"
+    });
+}
+
 function localizeIngredient(ingredient) {
     if (!ingredient) return null;
 
@@ -163,6 +178,7 @@ function toPlainRecipe(recipeInstance) {
         favorite_count: Number(recipe.favorite_count || 0),
         review_count: Number(recipe.review_count || 0),
         author_name: recipe.author ? recipe.author.username : null,
+        recipe_category_name: recipe.recipe_category ? recipe.recipe_category.name : null,
         ingredients: (recipe.ingredients || []).map((ingredient) => ({
             ...ingredient,
             product_name: ingredient.product ? ingredient.product.name : null,
@@ -184,6 +200,7 @@ function localizeRecipe(recipe) {
     });
 
     const author = localizeUser(localized.author);
+    const recipeCategory = localizeRecipeCategory(localized.recipe_category);
     const ingredients = (localized.ingredients || []).map(localizeIngredient);
     const steps = (localized.steps || []).map(localizeStep);
     const reviews = (localized.reviews || []).map(localizeReview);
@@ -191,6 +208,7 @@ function localizeRecipe(recipe) {
     return {
         ...addVietnameseAliases(localized, {
             author_id: "ma_tac_gia",
+            recipe_category_id: "ma_danh_muc_cong_thuc",
             title: "ten_cong_thuc",
             slug: "duong_dan_slug",
             description: "mo_ta",
@@ -206,7 +224,9 @@ function localizeRecipe(recipe) {
             favorite_count: "so_luot_yeu_thich",
             review_count: "so_luot_danh_gia",
             author_name: "ten_tac_gia",
+            recipe_category_name: "ten_danh_muc_cong_thuc",
             author: "tac_gia",
+            recipe_category: "danh_muc_cong_thuc",
             ingredients: "danh_sach_nguyen_lieu",
             steps: "cac_buoc_thuc_hien",
             reviews: "danh_sach_danh_gia",
@@ -215,6 +235,8 @@ function localizeRecipe(recipe) {
         }),
         author,
         tac_gia: author,
+        recipe_category: recipeCategory,
+        danh_muc_cong_thuc: recipeCategory,
         ingredients,
         danh_sach_nguyen_lieu: ingredients,
         steps,
@@ -241,6 +263,10 @@ const RecipeModel = {
             where.difficulty = filters.difficulty;
         }
 
+        if (filters.recipe_category_id) {
+            where.recipe_category_id = Number(filters.recipe_category_id);
+        }
+
         if (filters.keyword) {
             where[Op.or] = [
                 { title: { [Op.like]: `%${filters.keyword}%` } },
@@ -258,6 +284,11 @@ const RecipeModel = {
                     model: User,
                     as: "author",
                     attributes: ["id", "username"]
+                },
+                {
+                    model: RecipeCategory,
+                    as: "recipe_category",
+                    attributes: ["id", "name", "slug", "description", "image_url", "color_hex", "is_active"]
                 }
             ],
             order: [["created_at", "DESC"]]
@@ -276,6 +307,11 @@ const RecipeModel = {
                     model: User,
                     as: "author",
                     attributes: ["id", "username"]
+                },
+                {
+                    model: RecipeCategory,
+                    as: "recipe_category",
+                    attributes: ["id", "name", "slug", "description", "image_url", "color_hex", "is_active"]
                 },
                 {
                     model: RecipeIngredient,
@@ -321,6 +357,7 @@ const RecipeModel = {
         await sequelize.transaction(async (transaction) => {
             const recipe = await Recipe.create({
                 author_id: data.author_id || null,
+                recipe_category_id: data.recipe_category_id || null,
                 title: data.title,
                 slug: data.slug,
                 description: data.description || null,

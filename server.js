@@ -3,6 +3,7 @@ const express = require("express");
 const path = require("path");
 const multer = require("multer");
 const cors = require("cors");
+const { DataTypes } = require("sequelize");
 const swaggerUi = require("swagger-ui-express");
 
 require("dotenv").config({ quiet: true });
@@ -15,6 +16,7 @@ const { initializeChatSocket } = require("./sockets/chatSocket");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const recipeCategoryRoutes = require("./routes/recipeCategoryRoutes");
 const productRoutes = require("./routes/productRoutes");
 const recipeRoutes = require("./routes/recipeRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -26,16 +28,24 @@ const chatRoutes = require("./routes/chatRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const staffShiftRoutes = require("./routes/staffShiftRoutes");
+const emailCampaignRoutes = require("./routes/emailCampaignRoutes");
 
 const app = express();
 const httpServer = http.createServer(app);
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: [
+    "http://localhost:5173"
+    //"http://localhost:3000"
+  ],
+  credentials: true
+}));
+app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     explorer: true,
-    customSiteTitle: "ShopFood API Docs"
+    customSiteTitle: "Garden Fresh API Docs"
 }));
 app.get("/api-docs.json", (req, res) => {
     res.json(swaggerSpec);
@@ -44,6 +54,7 @@ app.get("/api-docs.json", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/recipe-categories", recipeCategoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/recipes", recipeRoutes);
 app.use("/api/cart", cartRoutes);
@@ -53,6 +64,8 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/staff-shifts", staffShiftRoutes);
+app.use("/api/email-campaigns", emailCampaignRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/api/chat", chatRoutes);
 
@@ -100,9 +113,466 @@ app.use((error, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
+function normalizeTableName(entry) {
+    if (typeof entry === "string") return entry;
+    if (entry && typeof entry === "object") {
+        return entry.tableName || entry.name || Object.values(entry)[0];
+    }
+
+    return String(entry);
+}
+
+async function ensureRuntimeSchema() {
+    const queryInterface = sequelize.getQueryInterface();
+    const userTable = await queryInterface.describeTable("users");
+
+    if (!userTable.code) {
+        await queryInterface.addColumn("users", "code", {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            unique: true
+        });
+    }
+
+    if (!userTable.must_change_password) {
+        await queryInterface.addColumn("users", "must_change_password", {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        });
+    }
+
+    const existingTables = (await queryInterface.showAllTables())
+        .map(normalizeTableName)
+        .map((tableName) => String(tableName).toLowerCase());
+
+    if (existingTables.includes("categories")) {
+        await queryInterface.changeColumn("categories", "image_url", {
+            type: DataTypes.TEXT("medium"),
+            allowNull: true
+        });
+    }
+
+    if (!existingTables.includes("recipe_categories")) {
+        await queryInterface.createTable("recipe_categories", {
+            id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                autoIncrement: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            name: {
+                type: DataTypes.STRING(120),
+                allowNull: false
+            },
+            slug: {
+                type: DataTypes.STRING(150),
+                allowNull: false,
+                unique: true
+            },
+            description: {
+                type: DataTypes.TEXT
+            },
+            image_url: {
+                type: DataTypes.TEXT("medium")
+            },
+            color_hex: {
+                type: DataTypes.STRING(20)
+            },
+            is_active: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: true
+            },
+            created_at: {
+                type: DataTypes.DATE,
+                allowNull: false,
+                defaultValue: sequelize.literal("CURRENT_TIMESTAMP")
+            },
+            updated_at: {
+                type: DataTypes.DATE,
+                allowNull: false,
+                defaultValue: sequelize.literal("CURRENT_TIMESTAMP")
+            }
+        });
+    }
+
+    if (existingTables.includes("recipe_categories")) {
+        await queryInterface.changeColumn("recipe_categories", "image_url", {
+            type: DataTypes.TEXT("medium"),
+            allowNull: true
+        });
+    }
+
+    const recipeTable = await queryInterface.describeTable("recipes");
+    if (!recipeTable.recipe_category_id) {
+        await queryInterface.addColumn("recipes", "recipe_category_id", {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: true,
+            references: {
+                model: "recipe_categories",
+                key: "id"
+            },
+            onUpdate: "CASCADE",
+            onDelete: "SET NULL"
+        });
+    }
+
+    const [categoryCountRows] = await sequelize.query("SELECT COUNT(*) AS total FROM recipe_categories");
+    const categoryCount = Number(categoryCountRows?.[0]?.total || 0);
+    if (categoryCount === 0) {
+        await queryInterface.bulkInsert("recipe_categories", [
+            {
+                name: "Món Việt",
+                slug: "mon-viet",
+                description: "Các món ăn truyền thống quen thuộc.",
+                color_hex: "#0E8A47",
+                is_active: true,
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                name: "Món Âu",
+                slug: "mon-au",
+                description: "Các món ăn phong cách phương Tây.",
+                color_hex: "#E28A2E",
+                is_active: true,
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                name: "Healthy",
+                slug: "healthy",
+                description: "Món ăn lành mạnh và cân bằng dinh dưỡng.",
+                color_hex: "#36C86E",
+                is_active: true,
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                name: "Tráng miệng",
+                slug: "trang-mieng",
+                description: "Nhóm món ngọt và món ăn nhẹ cuối bữa.",
+                color_hex: "#F6A977",
+                is_active: true,
+                created_at: new Date(),
+                updated_at: new Date()
+            }
+        ]);
+    }
+
+    const productTable = await queryInterface.describeTable("products");
+    if (!productTable.stock_unit) {
+        await queryInterface.addColumn("products", "stock_unit", {
+            type: DataTypes.STRING(50),
+            allowNull: false,
+            defaultValue: "đơn vị"
+        });
+    }
+    if (!productTable.sale_unit) {
+        await queryInterface.addColumn("products", "sale_unit", {
+            type: DataTypes.STRING(50),
+            allowNull: false,
+            defaultValue: "đơn vị"
+        });
+    }
+    if (!productTable.stock_per_sale_unit) {
+        await queryInterface.addColumn("products", "stock_per_sale_unit", {
+            type: DataTypes.DECIMAL(12, 3),
+            allowNull: false,
+            defaultValue: 1
+        });
+    }
+    if (!productTable.production_date) {
+        await queryInterface.addColumn("products", "production_date", {
+            type: DataTypes.DATEONLY,
+            allowNull: true
+        });
+    }
+    if (!productTable.expiration_date) {
+        await queryInterface.addColumn("products", "expiration_date", {
+            type: DataTypes.DATEONLY,
+            allowNull: true
+        });
+    }
+
+    let productStoreAllocationTable = null;
+    try {
+        productStoreAllocationTable = await queryInterface.describeTable("product_store_allocations");
+    } catch (_error) {
+        await queryInterface.createTable("product_store_allocations", {
+            id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                autoIncrement: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            product_id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                references: {
+                    model: "products",
+                    key: "id"
+                },
+                onUpdate: "CASCADE",
+                onDelete: "CASCADE"
+            },
+            store_key: {
+                type: DataTypes.STRING(50),
+                allowNull: false
+            },
+            store_name: {
+                type: DataTypes.STRING(120),
+                allowNull: false
+            },
+            allocated_quantity: {
+                type: DataTypes.DECIMAL(12, 3),
+                allowNull: false,
+                defaultValue: 0
+            },
+            publish_mode: {
+                type: DataTypes.ENUM("draft", "published"),
+                allowNull: false,
+                defaultValue: "draft"
+            },
+            created_at: {
+                type: DataTypes.DATE,
+                allowNull: false
+            },
+            updated_at: {
+                type: DataTypes.DATE,
+                allowNull: false
+            }
+        });
+        await queryInterface.addIndex("product_store_allocations", ["product_id", "store_key"], {
+            unique: true,
+            name: "product_store_allocations_product_id_store_key_unique"
+        });
+        await queryInterface.addIndex("product_store_allocations", ["store_key", "publish_mode"], {
+            name: "product_store_allocations_store_key_publish_mode_idx"
+        });
+        productStoreAllocationTable = await queryInterface.describeTable("product_store_allocations");
+    }
+
+    if (productStoreAllocationTable && !productStoreAllocationTable.store_name) {
+        await queryInterface.addColumn("product_store_allocations", "store_name", {
+            type: DataTypes.STRING(120),
+            allowNull: false,
+            defaultValue: "Cửa hàng"
+        });
+    }
+    if (productStoreAllocationTable && !productStoreAllocationTable.allocated_quantity) {
+        await queryInterface.addColumn("product_store_allocations", "allocated_quantity", {
+            type: DataTypes.DECIMAL(12, 3),
+            allowNull: false,
+            defaultValue: 0
+        });
+    }
+    if (productStoreAllocationTable && !productStoreAllocationTable.publish_mode) {
+        await queryInterface.addColumn("product_store_allocations", "publish_mode", {
+            type: DataTypes.ENUM("draft", "published"),
+            allowNull: false,
+            defaultValue: "draft"
+        });
+    }
+
+    const supplierTable = await queryInterface.describeTable("suppliers");
+    if (!supplierTable.logo_url) {
+        await queryInterface.addColumn("suppliers", "logo_url", {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        });
+    }
+
+    const orderTable = await queryInterface.describeTable("orders");
+    if (!orderTable.shipped_at) {
+        await queryInterface.addColumn("orders", "shipped_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!orderTable.delivered_at) {
+        await queryInterface.addColumn("orders", "delivered_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!orderTable.completed_at) {
+        await queryInterface.addColumn("orders", "completed_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!orderTable.customer_received_at) {
+        await queryInterface.addColumn("orders", "customer_received_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!orderTable.shipping_provider) {
+        await queryInterface.addColumn("orders", "shipping_provider", {
+            type: DataTypes.STRING(50),
+            allowNull: true
+        });
+    }
+    if (!orderTable.tracking_code) {
+        await queryInterface.addColumn("orders", "tracking_code", {
+            type: DataTypes.STRING(80),
+            allowNull: true
+        });
+    }
+    if (!orderTable.shipping_status) {
+        await queryInterface.addColumn("orders", "shipping_status", {
+            type: DataTypes.STRING(50),
+            allowNull: true
+        });
+    }
+    if (!orderTable.shipping_note) {
+        await queryInterface.addColumn("orders", "shipping_note", {
+            type: DataTypes.STRING(255),
+            allowNull: true
+        });
+    }
+    if (!orderTable.shipping_estimated_minutes) {
+        await queryInterface.addColumn("orders", "shipping_estimated_minutes", {
+            type: DataTypes.INTEGER.UNSIGNED,
+            allowNull: true
+        });
+    }
+    if (!orderTable.return_status) {
+        await queryInterface.addColumn("orders", "return_status", {
+            type: DataTypes.STRING(30),
+            allowNull: true
+        });
+    }
+    if (!orderTable.return_started_at) {
+        await queryInterface.addColumn("orders", "return_started_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!orderTable.return_completed_at) {
+        await queryInterface.addColumn("orders", "return_completed_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!orderTable.refund_status) {
+        await queryInterface.addColumn("orders", "refund_status", {
+            type: DataTypes.STRING(30),
+            allowNull: true
+        });
+    }
+    if (!orderTable.refund_amount) {
+        await queryInterface.addColumn("orders", "refund_amount", {
+            type: DataTypes.DECIMAL(12, 2),
+            allowNull: false,
+            defaultValue: 0
+        });
+    }
+    if (!orderTable.refund_reason) {
+        await queryInterface.addColumn("orders", "refund_reason", {
+            type: DataTypes.TEXT,
+            allowNull: true
+        });
+    }
+    if (!orderTable.refunded_at) {
+        await queryInterface.addColumn("orders", "refunded_at", {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+
+    await sequelize.query(`
+        UPDATE orders
+        SET shipped_at = updated_at
+        WHERE status = 'shipping' AND shipped_at IS NULL
+    `);
+
+    await sequelize.query(`
+        UPDATE orders
+        SET delivered_at = completed_at
+        WHERE status = 'completed' AND completed_at IS NOT NULL AND delivered_at IS NULL
+    `);
+
+    await sequelize.query(`
+        UPDATE orders
+        SET
+            status = 'shipping',
+            delivered_at = COALESCE(delivered_at, completed_at, updated_at),
+            completed_at = NULL
+        WHERE
+            status = 'completed'
+            AND customer_received_at IS NULL
+            AND return_status IS NULL
+    `);
+
+    await sequelize.query(`
+        UPDATE orders
+        SET completed_at = updated_at
+        WHERE status = 'completed' AND completed_at IS NULL
+    `);
+
+    await queryInterface.changeColumn("products", "stock_quantity", {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false,
+        defaultValue: 0
+    });
+
+    await sequelize.query("UPDATE products SET stock_unit = COALESCE(stock_unit, 'đơn vị')");
+    await sequelize.query("UPDATE products SET sale_unit = COALESCE(sale_unit, unit, 'đơn vị')");
+    await sequelize.query("UPDATE products SET stock_per_sale_unit = COALESCE(stock_per_sale_unit, 1)");
+    await sequelize.query("UPDATE products SET unit = COALESCE(sale_unit, unit, 'đơn vị')");
+
+    const couponTable = await queryInterface.describeTable("coupons");
+    if (!couponTable.campaign_metadata) {
+        await queryInterface.addColumn("coupons", "campaign_metadata", {
+            type: DataTypes.TEXT,
+            allowNull: true
+        });
+    }
+
+    await queryInterface.changeColumn("inventory_documents", "total_quantity", {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false,
+        defaultValue: 0
+    });
+    await queryInterface.changeColumn("inventory_document_items", "quantity", {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false
+    });
+    await queryInterface.changeColumn("inventory_transactions", "quantity", {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false
+    });
+    await queryInterface.changeColumn("inventory_transactions", "stock_before", {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false
+    });
+    await queryInterface.changeColumn("inventory_transactions", "stock_after", {
+        type: DataTypes.DECIMAL(12, 3),
+        allowNull: false
+    });
+
+    const paymentTable = await queryInterface.describeTable("payment_transactions");
+    if (!paymentTable.gateway_reference) {
+        await queryInterface.addColumn("payment_transactions", "gateway_reference", {
+            type: DataTypes.STRING(120),
+            allowNull: true
+        });
+    }
+    if (!paymentTable.gateway_checkout_url) {
+        await queryInterface.addColumn("payment_transactions", "gateway_checkout_url", {
+            type: DataTypes.TEXT,
+            allowNull: true
+        });
+    }
+}
+
 async function startServer() {
     try {
         await sequelize.authenticate();
+        await ensureRuntimeSchema();
         initializeChatSocket(httpServer);
         console.log("Kết nối Sequelize thành công.");
 
@@ -119,5 +589,8 @@ async function startServer() {
 }
 
 startServer();
+
+
+
 
 

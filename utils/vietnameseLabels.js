@@ -51,10 +51,24 @@
         paid: "Đã thanh toán",
         refunded: "Đã hoàn tiền"
     },
+    refund_status: {
+        requested: "Chờ duyệt hoàn tiền",
+        approved: "Đã duyệt hoàn tiền",
+        refunded: "Đã hoàn tiền",
+        rejected: "Từ chối hoàn tiền"
+    },
     payment_method: {
         cod: "Thanh toán khi nhận hàng",
         bank_transfer: "Chuyển khoản",
-        online: "Thanh toán trực tuyến"
+        online: "Thanh toán qua ZaloPay"
+    },
+    shipping_status: {
+        booking: "Đang đặt tài xế",
+        driver_assigned: "Đã có tài xế",
+        picked_up: "Đang giao bằng Grab",
+        delivering: "Đang giao bằng Grab",
+        delivered: "Grab đã giao tới khách",
+        cancelled: "Đã hủy vận đơn"
     },
     inventory_document_type: {
         receipt: "Nhap kho",

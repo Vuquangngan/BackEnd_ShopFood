@@ -37,6 +37,31 @@ function localizeCategory(category) {
     };
 }
 
+async function resolveParentId(parentId, currentId = null) {
+    const nextParentId = Number(parentId || 0);
+    if (!nextParentId) return null;
+    if (currentId && nextParentId === Number(currentId)) {
+        const error = new Error("Danh mục không thể chọn chính nó làm danh mục cha.");
+        error.status = 400;
+        throw error;
+    }
+
+    const parent = await Category.findByPk(nextParentId);
+    if (!parent) {
+        const error = new Error("Danh mục cha không tồn tại.");
+        error.status = 400;
+        throw error;
+    }
+
+    if (parent.parent_id) {
+        const error = new Error("Chỉ được chọn danh mục cấp cha, không được chọn danh mục con làm cha.");
+        error.status = 400;
+        throw error;
+    }
+
+    return nextParentId;
+}
+
 const CategoryModel = {
     async getAll() {
         const categories = await Category.findAll({
@@ -82,8 +107,9 @@ const CategoryModel = {
     },
 
     async create(data) {
+        const parentId = await resolveParentId(data.parent_id);
         const category = await Category.create({
-            parent_id: data.parent_id || null,
+            parent_id: parentId,
             name: data.name,
             slug: data.slug,
             description: data.description || null,
@@ -104,6 +130,9 @@ const CategoryModel = {
                 updateData[field] = data[field];
             }
         });
+        if (Object.prototype.hasOwnProperty.call(updateData, "parent_id")) {
+            updateData.parent_id = await resolveParentId(updateData.parent_id, id);
+        }
 
         if (Object.keys(updateData).length) {
             await category.update(updateData);

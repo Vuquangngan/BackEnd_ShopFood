@@ -112,3 +112,20 @@ exports.markAsRead = async (req, res) => {
         return handleError(res, error);
     }
 };
+
+exports.updateStatus = async (req, res) => {
+    try {
+        const conversationId = parseId(req.params.id);
+
+        if (!conversationId) {
+            return res.status(400).json(withCommonResponseAliases({
+                message: "Mã hội thoại không hợp lệ."
+            }));
+        }
+
+        const conversation = await Chat.updateConversationStatus(conversationId, req.user, req.body.status);
+        return res.json(conversation);
+    } catch (error) {
+        return handleError(res, error);
+    }
+};

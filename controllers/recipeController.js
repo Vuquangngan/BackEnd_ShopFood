@@ -15,7 +15,7 @@ function handleError(res, error) {
 
     if (error.name === "SequelizeForeignKeyConstraintError" || error.code === "ER_NO_REFERENCED_ROW_2") {
         return res.status(400).json(withCommonResponseAliases({
-            message: "Người dùng hoặc sản phẩm liên kết không tồn tại."
+            message: "Danh mục công thức, người dùng hoặc sản phẩm liên kết không tồn tại."
         }));
     }
 

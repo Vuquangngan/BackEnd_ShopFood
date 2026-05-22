@@ -10,8 +10,10 @@ const commonOptions = {
 const User = sequelize.define("User", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     username: { type: DataTypes.STRING(100), allowNull: false },
+    code: { type: DataTypes.STRING(50), unique: true },
     email: { type: DataTypes.STRING(150), allowNull: false, unique: true },
     password: { type: DataTypes.STRING(255), allowNull: false },
+    must_change_password: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     phone: { type: DataTypes.STRING(20) },
     avatar_url: { type: DataTypes.STRING(255) },
     role: {
@@ -88,11 +90,24 @@ const Category = sequelize.define("Category", {
     name: { type: DataTypes.STRING(120), allowNull: false },
     slug: { type: DataTypes.STRING(150), allowNull: false, unique: true },
     description: { type: DataTypes.TEXT },
-    image_url: { type: DataTypes.STRING(255) },
+    image_url: { type: DataTypes.TEXT("medium") },
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
 }, {
     ...commonOptions,
     tableName: "categories"
+});
+
+const RecipeCategory = sequelize.define("RecipeCategory", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING(120), allowNull: false },
+    slug: { type: DataTypes.STRING(150), allowNull: false, unique: true },
+    description: { type: DataTypes.TEXT },
+    image_url: { type: DataTypes.TEXT("medium") },
+    color_hex: { type: DataTypes.STRING(20) },
+    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }
+}, {
+    ...commonOptions,
+    tableName: "recipe_categories"
 });
 
 const Product = sequelize.define("Product", {
@@ -105,8 +120,13 @@ const Product = sequelize.define("Product", {
     description: { type: DataTypes.TEXT },
     price: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
     sale_price: { type: DataTypes.DECIMAL(12, 2) },
-    stock_quantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    stock_quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
+    stock_unit: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "đơn vị" },
+    stock_per_sale_unit: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 1 },
+    sale_unit: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "đơn vị" },
     unit: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "đơn vị" },
+    production_date: { type: DataTypes.DATEONLY },
+    expiration_date: { type: DataTypes.DATEONLY },
     thumbnail_url: { type: DataTypes.STRING(255) },
     is_featured: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
@@ -118,6 +138,29 @@ const Product = sequelize.define("Product", {
 }, {
     ...commonOptions,
     tableName: "products"
+});
+
+const ProductStoreAllocation = sequelize.define("ProductStoreAllocation", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    store_key: { type: DataTypes.STRING(50), allowNull: false },
+    store_name: { type: DataTypes.STRING(120), allowNull: false },
+    allocated_quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
+    publish_mode: {
+        type: DataTypes.ENUM("draft", "published"),
+        allowNull: false,
+        defaultValue: "draft"
+    }
+}, {
+    ...commonOptions,
+    tableName: "product_store_allocations",
+    indexes: [
+        {
+            unique: true,
+            fields: ["product_id", "store_key"]
+        },
+        { fields: ["store_key", "publish_mode"] }
+    ]
 });
 
 const ProductImage = sequelize.define("ProductImage", {
@@ -152,6 +195,7 @@ const Supplier = sequelize.define("Supplier", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING(150), allowNull: false },
     code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    logo_url: { type: DataTypes.STRING(255) },
     contact_person: { type: DataTypes.STRING(120) },
     phone: { type: DataTypes.STRING(20) },
     email: { type: DataTypes.STRING(150) },
@@ -184,7 +228,7 @@ const InventoryDocument = sequelize.define("InventoryDocument", {
         allowNull: false,
         defaultValue: "draft"
     },
-    total_quantity: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+    total_quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
     total_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
     completed_at: { type: DataTypes.DATE }
 }, {
@@ -203,7 +247,7 @@ const InventoryDocumentItem = sequelize.define("InventoryDocumentItem", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     document_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    quantity: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
     unit_cost: { type: DataTypes.DECIMAL(12, 2) },
     line_total: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
     note: { type: DataTypes.STRING(255) }
@@ -231,9 +275,9 @@ const InventoryTransaction = sequelize.define("InventoryTransaction", {
         type: DataTypes.ENUM("in", "out"),
         allowNull: false
     },
-    quantity: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    stock_before: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    stock_after: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
+    stock_before: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
+    stock_after: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
     unit_cost: { type: DataTypes.DECIMAL(12, 2) },
     note: { type: DataTypes.STRING(255) },
     created_by: { type: DataTypes.INTEGER.UNSIGNED }
@@ -283,6 +327,7 @@ const Coupon = sequelize.define("Coupon", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
     description: { type: DataTypes.STRING(255) },
+    campaign_metadata: { type: DataTypes.TEXT },
     discount_type: { type: DataTypes.ENUM("percent", "fixed"), allowNull: false },
     discount_value: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
     min_order_value: { type: DataTypes.DECIMAL(12, 2) },
@@ -324,6 +369,22 @@ const Order = sequelize.define("Order", {
         allowNull: false,
         defaultValue: "pending"
     },
+    shipped_at: { type: DataTypes.DATE },
+    delivered_at: { type: DataTypes.DATE },
+    completed_at: { type: DataTypes.DATE },
+    customer_received_at: { type: DataTypes.DATE },
+    shipping_provider: { type: DataTypes.STRING(50) },
+    tracking_code: { type: DataTypes.STRING(80) },
+    shipping_status: { type: DataTypes.STRING(50) },
+    shipping_note: { type: DataTypes.STRING(255) },
+    shipping_estimated_minutes: { type: DataTypes.INTEGER.UNSIGNED },
+    return_status: { type: DataTypes.STRING(30) },
+    return_started_at: { type: DataTypes.DATE },
+    return_completed_at: { type: DataTypes.DATE },
+    refund_status: { type: DataTypes.STRING(30) },
+    refund_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
+    refund_reason: { type: DataTypes.TEXT },
+    refunded_at: { type: DataTypes.DATE },
     subtotal: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
     shipping_fee: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
     discount_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
@@ -350,6 +411,7 @@ const OrderItem = sequelize.define("OrderItem", {
 const Recipe = sequelize.define("Recipe", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     author_id: { type: DataTypes.INTEGER.UNSIGNED },
+    recipe_category_id: { type: DataTypes.INTEGER.UNSIGNED },
     title: { type: DataTypes.STRING(180), allowNull: false },
     slug: { type: DataTypes.STRING(200), allowNull: false, unique: true },
     description: { type: DataTypes.TEXT },
@@ -457,6 +519,8 @@ const PaymentTransaction = sequelize.define("PaymentTransaction", {
     },
     amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
     checkout_token: { type: DataTypes.STRING(120), allowNull: false, unique: true },
+    gateway_reference: { type: DataTypes.STRING(120) },
+    gateway_checkout_url: { type: DataTypes.TEXT },
     paid_at: { type: DataTypes.DATE },
     expired_at: { type: DataTypes.DATE },
     failure_reason: { type: DataTypes.STRING(255) }
@@ -533,8 +597,13 @@ Category.hasMany(Category, { foreignKey: "parent_id", as: "children", onDelete: 
 Category.hasMany(Product, { foreignKey: "category_id", as: "products", onDelete: "RESTRICT" });
 Product.belongsTo(Category, { foreignKey: "category_id", as: "category", onDelete: "RESTRICT" });
 
+RecipeCategory.hasMany(Recipe, { foreignKey: "recipe_category_id", as: "recipes", onDelete: "SET NULL" });
+Recipe.belongsTo(RecipeCategory, { foreignKey: "recipe_category_id", as: "recipe_category", onDelete: "SET NULL" });
+
 Product.hasMany(ProductImage, { foreignKey: "product_id", as: "images", onDelete: "CASCADE" });
 ProductImage.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "CASCADE" });
+Product.hasMany(ProductStoreAllocation, { foreignKey: "product_id", as: "store_allocations", onDelete: "CASCADE" });
+ProductStoreAllocation.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "CASCADE" });
 Product.hasMany(ProductReview, { foreignKey: "product_id", as: "reviews", onDelete: "CASCADE" });
 ProductReview.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "CASCADE" });
 User.hasMany(ProductReview, { foreignKey: "user_id", as: "product_reviews", onDelete: "CASCADE" });
@@ -618,7 +687,9 @@ module.exports = {
     RefreshToken,
     Notification,
     Category,
+    RecipeCategory,
     Product,
+    ProductStoreAllocation,
     ProductImage,
     ProductReview,
     Supplier,

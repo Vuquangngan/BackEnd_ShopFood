@@ -1,4 +1,4 @@
-﻿const swaggerJSDoc = require("swagger-jsdoc");
+const swaggerJSDoc = require("swagger-jsdoc");
 const S = "#/components/schemas/";
 const bearer = [{ BearerAuth: [] }];
 const json = (schema) => ({ required: true, content: { "application/json": { schema } } });
@@ -7,7 +7,7 @@ const pid = (name = "id", desc = "ID") => ({ name, in: "path", required: true, d
 const tokenParam = { name: "token", in: "path", required: true, schema: { type: "string" } };
 const spec = {
   openapi: "3.0.3",
-  info: { title: "ShopFood API", version: "1.0.0", description: "Backend API documentation for the ShopFood grocery system." },
+  info: { title: "Garden Fresh API", version: "1.0.0", description: "Backend API documentation for the Garden Fresh grocery system." },
   servers: [{ url: "http://localhost:3000", description: "Local server" }],
   tags: [
     ["Auth","Registration, authentication, and session management"],
@@ -37,13 +37,13 @@ const spec = {
       ChangePasswordRequest: { type: "object", required: ["current_password","new_password"], properties: { current_password: { type: "string" }, new_password: { type: "string" } } },
       AuthResponse: { type: "object", properties: { message: { type: "string" }, token: { type: "string" }, access_token: { type: "string" }, refresh_token: { type: "string" }, refresh_token_expires_at: { type: "string", format: "date-time" }, user: { $ref: S + "User" } } },
       CategoryRequest: { type: "object", required: ["name","slug"], properties: { parent_id: { type: "integer", nullable: true }, name: { type: "string" }, slug: { type: "string" }, description: { type: "string", nullable: true } } },
-      ProductRequest: { type: "object", required: ["category_id","name","slug","sku","price"], properties: { category_id: { type: "integer" }, name: { type: "string" }, slug: { type: "string" }, sku: { type: "string" }, price: { type: "number" }, sale_price: { type: "number", nullable: true }, stock_quantity: { type: "integer" }, unit: { type: "string" }, is_published: { type: "boolean" }, images: { type: "array", items: { oneOf: [{ type: "string" }, { type: "object" }] } } } },
+      ProductRequest: { type: "object", required: ["name","slug","sku","price"], properties: { category_id: { type: "integer", description: "Nhap category_id neu ban dung ID danh muc" }, category_slug: { type: "string", description: "Nhap category_slug neu ban muon tao san pham theo slug danh muc, vi du trai-cay" }, name: { type: "string" }, slug: { type: "string" }, sku: { type: "string" }, price: { type: "number" }, sale_price: { type: "number", nullable: true }, stock_quantity: { type: "integer" }, unit: { type: "string" }, production_date: { type: "string", format: "date", nullable: true, example: "2026-05-19" }, expiration_date: { type: "string", format: "date", nullable: true, example: "2026-06-19" }, is_published: { type: "boolean" }, images: { type: "array", items: { oneOf: [{ type: "string" }, { type: "object" }] } } } },
       ProductReviewRequest: { type: "object", required: ["rating"], properties: { rating: { type: "integer", minimum: 1, maximum: 5 }, comment: { type: "string" } } },
       RecipeRequest: { type: "object", required: ["title","slug"], properties: { title: { type: "string" }, slug: { type: "string" }, description: { type: "string" }, image_url: { type: "string" }, prep_time_minutes: { type: "integer" }, cook_time_minutes: { type: "integer" }, servings: { type: "integer" }, difficulty: { type: "string" }, calories: { type: "integer" }, status: { type: "string" }, ingredients: { type: "array", items: { type: "object" } }, steps: { type: "array", items: { type: "object" } } } },
       RecipeReviewRequest: { type: "object", required: ["rating"], properties: { rating: { type: "integer", minimum: 1, maximum: 5 }, comment: { type: "string" } } },
       CartItemRequest: { type: "object", required: ["product_id","quantity"], properties: { product_id: { type: "integer" }, quantity: { type: "integer" } } },
       CartItemUpdateRequest: { type: "object", required: ["quantity"], properties: { quantity: { type: "integer" } } },
-      CouponRequest: { type: "object", required: ["code","discount_type","discount_value"], properties: { code: { type: "string" }, description: { type: "string" }, discount_type: { type: "string" }, discount_value: { type: "number" }, min_order_value: { type: "number" }, max_discount_value: { type: "number" }, usage_limit: { type: "integer" }, is_active: { type: "boolean" } } },
+      CouponRequest: { type: "object", required: ["code","discount_type","discount_value"], properties: { code: { type: "string" }, description: { type: "string" }, campaign_metadata: { type: "string", nullable: true, description: "JSON thiet lap chien dich, apply_scope products/categories, san pham hoac danh muc ap dung, khung gio..." }, discount_type: { type: "string" }, discount_value: { type: "number" }, min_order_value: { type: "number" }, max_discount_value: { type: "number" }, usage_limit: { type: "integer" }, is_active: { type: "boolean" } } },
       CouponValidateRequest: { type: "object", required: ["code"], properties: { code: { type: "string" }, subtotal: { type: "number" } } },
       CreateOrderRequest: { type: "object", required: ["customer_name","customer_phone","shipping_address","city"], properties: { customer_name: { type: "string" }, customer_phone: { type: "string" }, shipping_address: { type: "string" }, ward: { type: "string" }, district: { type: "string" }, city: { type: "string" }, note: { type: "string" }, payment_method: { type: "string" }, coupon_code: { type: "string" }, use_cart: { type: "boolean" }, items: { type: "array", items: { type: "object" } } } },
       OrderStatusRequest: { type: "object", properties: { status: { type: "string" }, payment_status: { type: "string" } } },
@@ -91,7 +91,7 @@ p["/api/categories/{id}"] = {
 };
 
 p["/api/products"] = {
-  get: { tags: ["Products"], summary: "List products with search, filters, and pagination", parameters: [{ name: "keyword", in: "query", schema: { type: "string" } }, { name: "category_id", in: "query", schema: { type: "integer" } }, { name: "status", in: "query", schema: { type: "string" } }, { name: "min_price", in: "query", schema: { type: "number" } }, { name: "max_price", in: "query", schema: { type: "number" } }, { name: "in_stock", in: "query", schema: { type: "boolean" } }, { name: "is_featured", in: "query", schema: { type: "boolean" } }, { name: "page", in: "query", schema: { type: "integer" } }, { name: "limit", in: "query", schema: { type: "integer" } }, { name: "sort_by", in: "query", schema: { type: "string" } }], responses: { 200: ok("Product list") } },
+  get: { tags: ["Products"], summary: "List products with search, filters, and pagination", parameters: [{ name: "keyword", in: "query", schema: { type: "string" } }, { name: "category_id", in: "query", schema: { type: "integer" } }, { name: "category_slug", in: "query", schema: { type: "string" } }, { name: "status", in: "query", schema: { type: "string" } }, { name: "min_price", in: "query", schema: { type: "number" } }, { name: "max_price", in: "query", schema: { type: "number" } }, { name: "in_stock", in: "query", schema: { type: "boolean" } }, { name: "is_featured", in: "query", schema: { type: "boolean" } }, { name: "page", in: "query", schema: { type: "integer" } }, { name: "limit", in: "query", schema: { type: "integer" } }, { name: "sort_by", in: "query", schema: { type: "string" } }], responses: { 200: ok("Product list") } },
   post: { tags: ["Products"], summary: "Create product", security: bearer, requestBody: json(ref("ProductRequest")), responses: { 201: ok("Create product thanh cong") } }
 };
 p["/api/products/{id}"] = {
@@ -197,6 +197,7 @@ p["/payments/{token}/confirm"] = { post: { tags: ["Payments"], summary: "Confirm
 p["/payments/{token}/cancel"] = { post: { tags: ["Payments"], summary: "Cancel online payment session", parameters: [tokenParam], responses: { 200: ok("Payment session cancelled successfully") } } };
 
 module.exports = swaggerJSDoc({ definition: spec, apis: [] });
+
 
 
 

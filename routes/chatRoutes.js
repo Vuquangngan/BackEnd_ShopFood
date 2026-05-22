@@ -13,5 +13,6 @@ router.get("/conversations/:id", chatController.getConversationById);
 router.get("/conversations/:id/messages", chatController.getMessages);
 router.post("/conversations/:id/messages", chatController.sendMessage);
 router.post("/conversations/:id/read", chatController.markAsRead);
+router.patch("/conversations/:id/status", chatController.updateStatus);
 
 module.exports = router;

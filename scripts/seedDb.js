@@ -42,21 +42,32 @@ const userSeeds = [
 ];
 
 const categorySeeds = [
-    { name: "Rau cá»§", slug: "rau-cu", description: "Rau cá»§ tÆ°Æ¡i dÃ¹ng cho bá»¯a Äƒn háº±ng ngÃ y" },
-    { name: "Thá»‹t cÃ¡", slug: "thit-ca", description: "Thá»‹t, cÃ¡ vÃ  háº£i sáº£n tÆ°Æ¡i" },
-    { name: "Gia vá»‹", slug: "gia-vi", description: "NÆ°á»›c cháº¥m vÃ  gia vá»‹ náº¥u Äƒn" },
-    { name: "Äá»“ khÃ´", slug: "do-kho", description: "Thá»±c pháº©m khÃ´ vÃ  Ä‘á»“ dÃ¹ng nhÃ  báº¿p" }
+    { name: "Thit heo", slug: "thit-heo", description: "Cac loai thit heo tuoi cho bua an hang ngay.", image_url: "/uploads/categories/danhmuc_thitheo.png", is_active: true },
+    { name: "Thit bo", slug: "thit-bo", description: "Thit bo tuoi, thit bo cat san va cac phan bo pho bien.", image_url: "/uploads/categories/danhmuc_thibo.png", is_active: true },
+    { name: "Thit ga", slug: "thit-ga", description: "Ga tuoi, ga lam san va cac phan thit ga tien che bien.", image_url: "/uploads/categories/danhmuc_thitga.png", is_active: true },
+    { name: "Hai san", slug: "hai-san", description: "Hai san tuoi song va dong lanh cho bua an gia dinh.", image_url: "/uploads/categories/danhmuc_haisan.png", is_active: true },
+    { name: "Rau la", slug: "rau-la", description: "Rau la xanh tuoi dung cho mon luoc, xao va salad.", image_url: "/uploads/categories/danhmuc_raula.png", is_active: true },
+    { name: "Rau cu", slug: "rau-cu", description: "Rau cu tuoi, de bao quan va phu hop nhieu mon an.", image_url: "/uploads/categories/danhmuc_raucu.png", is_active: true },
+    { name: "Trai cay", slug: "trai-cay", description: "Trai cay tuoi theo mua cho nhu cau an uong hang ngay.", image_url: "/uploads/categories/danhmuc_traicay.png", is_active: true },
+    { name: "Mi tom", slug: "mi-tom", description: "Mi goi, thuc pham tien loi va do kho an lien.", image_url: "/uploads/categories/danhmuc_mitom.png", is_active: true },
+    { name: "Sua", slug: "sua", description: "Sua tuoi, sua hop va cac san pham dinh duong tu sua.", image_url: "/uploads/categories/danhmuc_sua.png", is_active: true }
 ];
 
+const legacyCategoryRemaps = {
+    "thit-ca": "hai-san",
+    "gia-vi": "mi-tom",
+    "do-kho": "mi-tom"
+};
+
 const productSeeds = [
-    { category_slug: "do-kho", name: "Gáº¡o tráº¯ng", slug: "gao-trang", sku: "SKU-GAO-001", short_description: "Gáº¡o tráº¯ng thÆ¡m dáº»o", price: 22000, sale_price: 20000, stock_quantity: 150, unit: "kg", status: "active" },
-    { category_slug: "thit-ca", name: "Trá»©ng gÃ ", slug: "trung-ga", sku: "SKU-TRUNG-001", short_description: "Trá»©ng gÃ  tÆ°Æ¡i", price: 35000, sale_price: null, stock_quantity: 200, unit: "há»™p", status: "active" },
-    { category_slug: "rau-cu", name: "HÃ nh lÃ¡", slug: "hanh-la", sku: "SKU-HANH-001", short_description: "HÃ nh lÃ¡ tÆ°Æ¡i", price: 7000, sale_price: null, stock_quantity: 80, unit: "bÃ³", status: "active" },
-    { category_slug: "gia-vi", name: "NÆ°á»›c máº¯m", slug: "nuoc-mam", sku: "SKU-NM-001", short_description: "NÆ°á»›c máº¯m truyá»n thá»‘ng", price: 18000, sale_price: null, stock_quantity: 60, unit: "chai", status: "active" },
-    { category_slug: "gia-vi", name: "Dáº§u Äƒn", slug: "dau-an", sku: "SKU-DAU-001", short_description: "Dáº§u Äƒn tinh luyá»‡n", price: 42000, sale_price: null, stock_quantity: 50, unit: "chai", status: "active" },
-    { category_slug: "thit-ca", name: "Thá»‹t bÃ²", slug: "thit-bo", sku: "SKU-BO-001", short_description: "Thá»‹t bÃ² tÆ°Æ¡i", price: 180000, sale_price: 165000, stock_quantity: 40, unit: "kg", status: "active" },
-    { category_slug: "rau-cu", name: "Rau cáº£i", slug: "rau-cai", sku: "SKU-RAU-001", short_description: "Rau cáº£i xanh", price: 12000, sale_price: null, stock_quantity: 90, unit: "bÃ³", status: "active" },
-    { category_slug: "gia-vi", name: "Tá»i", slug: "toi", sku: "SKU-TOI-001", short_description: "Tá»i thÆ¡m", price: 10000, sale_price: null, stock_quantity: 70, unit: "cá»§", status: "active" }
+    { category_slug: "mi-tom", name: "Gao trang", slug: "gao-trang", sku: "SKU-GAO-001", short_description: "Gao trang thom deo", price: 22000, sale_price: 20000, stock_quantity: 150, unit: "kg", status: "active" },
+    { category_slug: "thit-ga", name: "Trung ga", slug: "trung-ga", sku: "SKU-TRUNG-001", short_description: "Trung ga tuoi", price: 35000, sale_price: null, stock_quantity: 200, unit: "hop", status: "active" },
+    { category_slug: "rau-la", name: "Hanh la", slug: "hanh-la", sku: "SKU-HANH-001", short_description: "Hanh la tuoi", price: 7000, sale_price: null, stock_quantity: 80, unit: "bo", status: "active" },
+    { category_slug: "mi-tom", name: "Nuoc mam", slug: "nuoc-mam", sku: "SKU-NM-001", short_description: "Nuoc mam truyen thong", price: 18000, sale_price: null, stock_quantity: 60, unit: "chai", status: "active" },
+    { category_slug: "mi-tom", name: "Dau an", slug: "dau-an", sku: "SKU-DAU-001", short_description: "Dau an tinh luyen", price: 42000, sale_price: null, stock_quantity: 50, unit: "chai", status: "active" },
+    { category_slug: "thit-bo", name: "Thit bo", slug: "thit-bo", sku: "SKU-BO-001", short_description: "Thit bo tuoi", price: 180000, sale_price: 165000, stock_quantity: 40, unit: "kg", status: "active" },
+    { category_slug: "rau-la", name: "Rau cai", slug: "rau-cai", sku: "SKU-RAU-001", short_description: "Rau cai xanh", price: 12000, sale_price: null, stock_quantity: 90, unit: "bo", status: "active" },
+    { category_slug: "rau-cu", name: "Toi", slug: "toi", sku: "SKU-TOI-001", short_description: "Toi thom", price: 10000, sale_price: null, stock_quantity: 70, unit: "cu", status: "active" }
 ];
 
 const couponSeeds = [
@@ -218,6 +229,29 @@ async function main() {
             for (const categorySeed of categorySeeds) {
                 const category = await upsertBySlug(Category, categorySeed, transaction);
                 categoriesBySlug[category.slug] = category;
+            }
+
+            for (const [legacySlug, replacementSlug] of Object.entries(legacyCategoryRemaps)) {
+                const legacyCategory = await Category.findOne({
+                    where: { slug: legacySlug },
+                    transaction
+                });
+
+                const replacementCategory = categoriesBySlug[replacementSlug];
+
+                if (!legacyCategory || !replacementCategory) {
+                    continue;
+                }
+
+                await Product.update(
+                    { category_id: replacementCategory.id },
+                    {
+                        where: { category_id: legacyCategory.id },
+                        transaction
+                    }
+                );
+
+                await legacyCategory.destroy({ transaction });
             }
 
             const productsBySlug = {};

@@ -1,8 +1,19 @@
 const { Op } = require("sequelize");
-const { sequelize, User, UserAddress } = require("./index");
+const { sequelize, Order, User, UserAddress } = require("./index");
 
 const USER_UPDATE_FIELDS = ["username", "phone", "avatar_url"];
+const ADMIN_USER_UPDATE_FIELDS = ["username", "code", "email", "phone", "avatar_url", "role", "status", "must_change_password"];
 const ADDRESS_FIELDS = ["full_name", "phone", "address_line", "ward", "district", "city", "is_default"];
+const CUSTOMER_POINT_STEP_AMOUNT = 100000;
+const CUSTOMER_POINT_STEP_VALUE = 50;
+const CUSTOMER_TIERS = [
+    { key: "dong", label: "Dong", minPoints: 0 },
+    { key: "bac", label: "Bac", minPoints: 500 },
+    { key: "vang", label: "Vang", minPoints: 2500 },
+    { key: "bach_kim", label: "Bach kim", minPoints: 5000 },
+    { key: "kim_cuong", label: "Kim cuong", minPoints: 14000 },
+    { key: "vip", label: "VIP", minPoints: 20000 }
+];
 
 function toPlainUser(userInstance) {
     if (!userInstance) return null;
@@ -14,23 +25,73 @@ function toPlainAddress(addressInstance) {
     return addressInstance.get ? addressInstance.get({ plain: true }) : addressInstance;
 }
 
+function getTierFromPoints(pointsValue) {
+    const points = Number(pointsValue || 0);
+    return [...CUSTOMER_TIERS]
+        .sort((left, right) => left.minPoints - right.minPoints)
+        .reduce((currentTier, tier) => (points >= tier.minPoints ? tier : currentTier), CUSTOMER_TIERS[0]);
+}
+
+function calculateOrderLoyaltyPoints(orderValue) {
+    const value = Number(orderValue || 0);
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return Math.ceil((value / CUSTOMER_POINT_STEP_AMOUNT) * CUSTOMER_POINT_STEP_VALUE);
+}
+
+function decorateCustomer(user, orders) {
+    const completedOrders = orders.filter((order) => order.status === "completed");
+    const completedOrdersCount = completedOrders.length;
+    const totalSpent = completedOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+    const loyaltyPoints = completedOrders.reduce((sum, order) => {
+        return sum + calculateOrderLoyaltyPoints(order.total_amount);
+    }, 0);
+    const currentTier = getTierFromPoints(loyaltyPoints);
+    const nextTier = CUSTOMER_TIERS.find((tier) => tier.minPoints > currentTier.minPoints) || null;
+
+    return {
+        ...user,
+        completed_orders_count: completedOrdersCount,
+        total_spent: totalSpent,
+        loyalty_points: loyaltyPoints,
+        membership_tier: currentTier.key,
+        membership_tier_label: currentTier.label,
+        next_membership_tier: nextTier?.key || null,
+        next_membership_tier_label: nextTier?.label || null,
+        points_to_next_tier: nextTier ? Math.max(0, nextTier.minPoints - loyaltyPoints) : 0
+    };
+}
+
 const UserModel = {
     createUser(username, email, password, extra = {}) {
         return User.create({ username, email, password, ...extra });
     },
 
     findByEmail(email) {
-        return User.findOne({ where: { email } });
+        const normalizedEmail = String(email || "").trim().toLowerCase();
+        return User.findOne({
+            where: sequelize.where(
+                sequelize.fn("LOWER", sequelize.col("email")),
+                normalizedEmail
+            )
+        });
+    },
+
+    findByCode(code) {
+        const normalizedCode = String(code || "").trim();
+        if (!normalizedCode) return null;
+        return User.findOne({
+            where: { code: normalizedCode }
+        });
     },
 
     findById(id) {
         return User.findByPk(id);
     },
 
-    async updatePassword(id, password) {
+    async updatePassword(id, password, extra = {}) {
         const user = await User.findByPk(id);
         if (!user) return null;
-        await user.update({ password });
+        await user.update({ password, ...extra });
         return user;
     },
 
@@ -39,6 +100,8 @@ const UserModel = {
 
         if (filters.role) {
             where.role = filters.role;
+        } else if (filters.scope === "staff") {
+            where.role = { [Op.in]: ["admin", "staff"] };
         }
 
         if (filters.status) {
@@ -48,6 +111,7 @@ const UserModel = {
         if (filters.keyword) {
             where[Op.or] = [
                 { username: { [Op.like]: `%${filters.keyword}%` } },
+                { code: { [Op.like]: `%${filters.keyword}%` } },
                 { email: { [Op.like]: `%${filters.keyword}%` } },
                 { phone: { [Op.like]: `%${filters.keyword}%` } }
             ];
@@ -60,6 +124,59 @@ const UserModel = {
         });
 
         return users.map(toPlainUser);
+    },
+
+    async getCustomers(filters = {}) {
+        const where = {
+            role: "customer"
+        };
+
+        if (filters.status) {
+            where.status = filters.status;
+        }
+
+        if (filters.keyword) {
+            where[Op.or] = [
+                { username: { [Op.like]: `%${filters.keyword}%` } },
+                { code: { [Op.like]: `%${filters.keyword}%` } },
+                { email: { [Op.like]: `%${filters.keyword}%` } },
+                { phone: { [Op.like]: `%${filters.keyword}%` } }
+            ];
+        }
+
+        const customerUsers = await User.findAll({
+            where,
+            attributes: { exclude: ["password"] },
+            order: [["created_at", "DESC"]]
+        });
+
+        const customers = customerUsers.map(toPlainUser);
+        const userIds = customers.map((user) => Number(user.id)).filter(Boolean);
+        if (!userIds.length) return [];
+
+        const orders = await Order.findAll({
+            where: {
+                user_id: { [Op.in]: userIds }
+            },
+            attributes: ["id", "user_id", "status", "total_amount"]
+        });
+
+        const ordersByUserId = new Map();
+        orders.forEach((orderInstance) => {
+            const order = orderInstance.get ? orderInstance.get({ plain: true }) : orderInstance;
+            const key = Number(order.user_id);
+            const bucket = ordersByUserId.get(key) || [];
+            bucket.push(order);
+            ordersByUserId.set(key, bucket);
+        });
+
+        const decoratedCustomers = customers.map((customer) => decorateCustomer(customer, ordersByUserId.get(Number(customer.id)) || []));
+
+        if (filters.tier) {
+            return decoratedCustomers.filter((customer) => customer.membership_tier === filters.tier);
+        }
+
+        return decoratedCustomers;
     },
 
     async getProfile(id) {
@@ -95,6 +212,36 @@ const UserModel = {
         }
 
         return this.getProfile(id);
+    },
+
+    async updateAdminUser(id, data) {
+        const user = await User.findByPk(id);
+        if (!user) return null;
+
+        const updateData = {};
+
+        ADMIN_USER_UPDATE_FIELDS.forEach((field) => {
+            if (Object.prototype.hasOwnProperty.call(data, field)) {
+                updateData[field] = data[field];
+            }
+        });
+
+        if (Object.prototype.hasOwnProperty.call(data, "password")) {
+            updateData.password = data.password;
+        }
+
+        if (Object.keys(updateData).length) {
+            await user.update(updateData);
+        }
+
+        return this.getProfile(id);
+    },
+
+    async removeUser(id) {
+        const user = await User.findByPk(id);
+        if (!user) return false;
+        await user.destroy();
+        return true;
     },
 
     async getAddresses(userId) {

@@ -14,6 +14,10 @@ router.put("/me/addresses/:addressId", userController.updateMyAddress);
 router.delete("/me/addresses/:addressId", userController.deleteMyAddress);
 
 router.get("/", authorize("admin", "staff"), userController.getAll);
+router.post("/", authorize("admin", "staff"), userController.create);
+router.get("/customers", authorize("admin", "staff"), userController.getCustomers);
 router.get("/:id", authorize("admin", "staff"), userController.getById);
+router.put("/:id", authorize("admin", "staff"), userController.update);
+router.delete("/:id", authorize("admin"), userController.remove);
 
 module.exports = router;

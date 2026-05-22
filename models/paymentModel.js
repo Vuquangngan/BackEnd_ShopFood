@@ -1,8 +1,9 @@
 ﻿const { randomUUID } = require("crypto");
 const { Op } = require("sequelize");
 
-const { Order, PaymentTransaction } = require("./index");
+const { Order, OrderItem, PaymentTransaction } = require("./index");
 const { addVietnameseAliases } = require("../utils/vietnameseLabels");
+const zaloPayService = require("../services/zaloPayService");
 
 const PAYMENT_STATUS_LABELS = {
     pending: "Chờ thanh toán",
@@ -74,6 +75,8 @@ function localizePayment(payment) {
         status_label: "trang_thai_hien_thi",
         amount: "so_tien",
         checkout_token: "ma_phien_thanh_toan",
+        gateway_reference: "ma_giao_dich_cong_thanh_toan",
+        gateway_checkout_url: "duong_dan_cong_thanh_toan",
         paid_at: "thoi_gian_thanh_toan",
         expired_at: "thoi_gian_het_han",
         failure_reason: "ly_do_that_bai",
@@ -84,6 +87,8 @@ function localizePayment(payment) {
 
     return {
         ...localized,
+        checkout_url: plainPayment.gateway_checkout_url || localized.checkout_url,
+        duong_dan_thanh_toan: plainPayment.gateway_checkout_url || localized.duong_dan_thanh_toan,
         order,
         don_hang: order
     };
@@ -117,7 +122,7 @@ async function expirePendingPayments(orderId) {
 }
 
 const PaymentModel = {
-    async createOrReuseCheckout(orderId, actor) {
+    async createOrReuseCheckout(orderId, actor, req = null) {
         const order = await getAccessibleOrder(orderId, actor);
 
         if (order.payment_method !== "online") {
@@ -133,6 +138,8 @@ const PaymentModel = {
         }
 
         await expirePendingPayments(order.id);
+
+        const gateway = process.env.PAYMENT_GATEWAY || "zalopay";
 
         let payment = await PaymentTransaction.findOne({
             where: {
@@ -153,12 +160,42 @@ const PaymentModel = {
             payment = await PaymentTransaction.create({
                 order_id: order.id,
                 payment_code: buildPaymentCode(),
-                gateway: "mock_gateway",
+                gateway,
                 status: "pending",
                 amount: order.total_amount,
                 checkout_token: randomUUID(),
                 expired_at: new Date(Date.now() + 30 * 60 * 1000)
             });
+
+            if (gateway === "zalopay") {
+                if (!req) {
+                    throw createPaymentError("Không thể tạo thanh toán ZaloPay do thiếu thông tin request.", 500);
+                }
+
+                try {
+                    const orderForGateway = await Order.findByPk(order.id, {
+                        include: [{ model: OrderItem, as: "items" }]
+                    });
+                    const zaloPayOrder = await zaloPayService.createOrder({
+                        order: orderForGateway.get({ plain: true }),
+                        payment: payment.get({ plain: true }),
+                        req
+                    });
+
+                    await payment.update({
+                        checkout_token: zaloPayOrder.app_trans_id,
+                        gateway_reference: zaloPayOrder.app_trans_id,
+                        gateway_checkout_url: zaloPayOrder.order_url,
+                        failure_reason: null
+                    });
+                } catch (error) {
+                    await payment.update({
+                        status: "failed",
+                        failure_reason: error.message || "Không thể tạo thanh toán ZaloPay."
+                    });
+                    throw error;
+                }
+            }
 
             payment = await PaymentTransaction.findByPk(payment.id, {
                 include: [{ model: Order, as: "order" }]
@@ -267,6 +304,45 @@ const PaymentModel = {
             status: "cancelled",
             failure_reason: "Người dùng đã hủy thanh toán."
         });
+
+        const refreshedPayment = await PaymentTransaction.findByPk(payment.id, {
+            include: [{ model: Order, as: "order" }]
+        });
+
+        return localizePayment(refreshedPayment);
+    },
+
+    async confirmZaloPayPayment(appTransId, callbackData = {}) {
+        const payment = await PaymentTransaction.findOne({
+            where: {
+                [Op.or]: [
+                    { gateway_reference: appTransId },
+                    { checkout_token: appTransId }
+                ]
+            },
+            include: [{ model: Order, as: "order" }]
+        });
+
+        if (!payment) {
+            throw createPaymentError("Không tìm thấy phiên thanh toán ZaloPay.", 404);
+        }
+
+        if (payment.status === "paid") {
+            return localizePayment(payment);
+        }
+
+        if (payment.status !== "pending") {
+            throw createPaymentError("Phiên thanh toán này không thể xác nhận nữa.");
+        }
+
+        await payment.update({
+            status: "paid",
+            paid_at: new Date(),
+            gateway_reference: appTransId,
+            failure_reason: callbackData.zp_trans_id ? `ZaloPay transaction: ${callbackData.zp_trans_id}` : null
+        });
+
+        await payment.order.update({ payment_status: "paid" });
 
         const refreshedPayment = await PaymentTransaction.findByPk(payment.id, {
             include: [{ model: Order, as: "order" }]

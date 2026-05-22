@@ -11,6 +11,7 @@ router.get("/:id", optionalAuthenticate, productController.getById);
 router.post("/", authenticate, authorize("admin", "staff"), productController.create);
 router.put("/:id", authenticate, authorize("admin", "staff"), productController.update);
 router.patch("/:id/publish", authenticate, authorize("admin", "staff"), productController.publish);
+router.put("/:id/store-allocation", authenticate, authorize("admin", "staff"), productController.setStoreAllocation);
 router.patch("/:id/unpublish", authenticate, authorize("admin", "staff"), productController.unpublish);
 router.delete("/:id", authenticate, authorize("admin"), productController.remove);
 

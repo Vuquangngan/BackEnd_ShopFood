@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS categories (
     name VARCHAR(120) NOT NULL,
     slug VARCHAR(150) NOT NULL,
     description TEXT NULL,
-    image_url VARCHAR(255) NULL,
+    image_url MEDIUMTEXT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS products (
     sale_price DECIMAL(12, 2) NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
     unit VARCHAR(50) NOT NULL DEFAULT 'item',
+    production_date DATE NULL,
+    expiration_date DATE NULL,
     thumbnail_url VARCHAR(255) NULL,
     is_featured BOOLEAN NOT NULL DEFAULT FALSE,
     status ENUM('draft', 'active', 'out_of_stock', 'archived') NOT NULL DEFAULT 'active',
@@ -121,6 +123,7 @@ CREATE TABLE IF NOT EXISTS coupons (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL,
     description VARCHAR(255) NULL,
+    campaign_metadata TEXT NULL,
     discount_type ENUM('percent', 'fixed') NOT NULL,
     discount_value DECIMAL(12, 2) NOT NULL,
     min_order_value DECIMAL(12, 2) NULL,
@@ -190,7 +193,7 @@ CREATE TABLE IF NOT EXISTS recipes (
     title VARCHAR(180) NOT NULL,
     slug VARCHAR(200) NOT NULL,
     description TEXT NULL,
-    image_url VARCHAR(255) NULL,
+    image_url MEDIUMTEXT NULL,
     prep_time_minutes INT UNSIGNED NOT NULL DEFAULT 0,
     cook_time_minutes INT UNSIGNED NOT NULL DEFAULT 0,
     servings INT UNSIGNED NOT NULL DEFAULT 1,
@@ -275,17 +278,40 @@ CREATE TABLE IF NOT EXISTS recipe_reviews (
 -- ============================================
 USE `shopfood`;
 
-INSERT INTO categories (name, slug, description)
+INSERT INTO categories (name, slug, description, image_url, is_active)
 VALUES
-    ('Rau củ', 'rau-cu', 'Rau củ tươi dùng cho bữa ăn hằng ngày'),
-    ('Thịt cá', 'thit-ca', 'Thịt, cá và hải sản tươi'),
-    ('Gia vị', 'gia-vi', 'Nước chấm và gia vị nấu ăn'),
-    ('Đồ khô', 'do-kho', 'Thực phẩm khô và đồ dùng nhà bếp')
+    ('Thit heo', 'thit-heo', 'Cac loai thit heo tuoi cho bua an hang ngay.', '/uploads/categories/danhmuc_thitheo.png', TRUE),
+    ('Thit bo', 'thit-bo', 'Thit bo tuoi, thit bo cat san va cac phan bo pho bien.', '/uploads/categories/danhmuc_thibo.png', TRUE),
+    ('Thit ga', 'thit-ga', 'Ga tuoi, ga lam san va cac phan thit ga tien che bien.', '/uploads/categories/danhmuc_thitga.png', TRUE),
+    ('Hai san', 'hai-san', 'Hai san tuoi song va dong lanh cho bua an gia dinh.', '/uploads/categories/danhmuc_haisan.png', TRUE),
+    ('Rau la', 'rau-la', 'Rau la xanh tuoi dung cho mon luoc, xao va salad.', '/uploads/categories/danhmuc_raula.png', TRUE),
+    ('Rau cu', 'rau-cu', 'Rau cu tuoi, de bao quan va phu hop nhieu mon an.', '/uploads/categories/danhmuc_raucu.png', TRUE),
+    ('Trai cay', 'trai-cay', 'Trai cay tuoi theo mua cho nhu cau an uong hang ngay.', '/uploads/categories/danhmuc_traicay.png', TRUE),
+    ('Mi tom', 'mi-tom', 'Mi goi, thuc pham tien loi va do kho an lien.', '/uploads/categories/danhmuc_mitom.png', TRUE),
+    ('Sua', 'sua', 'Sua tuoi, sua hop va cac san pham dinh duong tu sua.', '/uploads/categories/danhmuc_sua.png', TRUE)
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
-    description = VALUES(description);
+    description = VALUES(description),
+    image_url = VALUES(image_url),
+    is_active = VALUES(is_active);
+
+UPDATE products
+SET category_id = (SELECT id FROM categories WHERE slug = 'hai-san' LIMIT 1)
+WHERE category_id = (SELECT id FROM categories WHERE slug = 'thit-ca' LIMIT 1);
+
+UPDATE products
+SET category_id = (SELECT id FROM categories WHERE slug = 'mi-tom' LIMIT 1)
+WHERE category_id = (SELECT id FROM categories WHERE slug = 'gia-vi' LIMIT 1);
+
+UPDATE products
+SET category_id = (SELECT id FROM categories WHERE slug = 'mi-tom' LIMIT 1)
+WHERE category_id = (SELECT id FROM categories WHERE slug = 'do-kho' LIMIT 1);
+
+DELETE FROM categories WHERE slug IN ('thit-ca', 'gia-vi', 'do-kho');
 
 INSERT INTO products (
+
+
     category_id,
     name,
     slug,
@@ -298,15 +324,16 @@ INSERT INTO products (
     status
 )
 VALUES
-    ((SELECT id FROM categories WHERE slug = 'do-kho'), 'Gạo trắng', 'gao-trang', 'SKU-GAO-001', 'Gạo trắng thơm dẻo', 22000, 20000, 150, 'kg', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'thit-ca'), 'Trứng gà', 'trung-ga', 'SKU-TRUNG-001', 'Trứng gà tươi', 35000, NULL, 200, 'hộp', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'rau-cu'), 'Hành lá', 'hanh-la', 'SKU-HANH-001', 'Hành lá tươi', 7000, NULL, 80, 'bó', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'gia-vi'), 'Nước mắm', 'nuoc-mam', 'SKU-NM-001', 'Nước mắm truyền thống', 18000, NULL, 60, 'chai', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'gia-vi'), 'Dầu ăn', 'dau-an', 'SKU-DAU-001', 'Dầu ăn tinh luyện', 42000, NULL, 50, 'chai', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'thit-ca'), 'Thịt bò', 'thit-bo', 'SKU-BO-001', 'Thịt bò tươi', 180000, 165000, 40, 'kg', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'rau-cu'), 'Rau cải', 'rau-cai', 'SKU-RAU-001', 'Rau cải xanh', 12000, NULL, 90, 'bó', 'active'),
-    ((SELECT id FROM categories WHERE slug = 'gia-vi'), 'Tỏi', 'toi', 'SKU-TOI-001', 'Tỏi thơm', 10000, NULL, 70, 'củ', 'active')
+    ((SELECT id FROM categories WHERE slug = 'mi-tom'), 'Gao trang', 'gao-trang', 'SKU-GAO-001', 'Gao trang thom deo', 22000, 20000, 150, 'kg', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'thit-ga'), 'Trung ga', 'trung-ga', 'SKU-TRUNG-001', 'Trung ga tuoi', 35000, NULL, 200, 'hop', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'rau-la'), 'Hanh la', 'hanh-la', 'SKU-HANH-001', 'Hanh la tuoi', 7000, NULL, 80, 'bo', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'mi-tom'), 'Nuoc mam', 'nuoc-mam', 'SKU-NM-001', 'Nuoc mam truyen thong', 18000, NULL, 60, 'chai', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'mi-tom'), 'Dau an', 'dau-an', 'SKU-DAU-001', 'Dau an tinh luyen', 42000, NULL, 50, 'chai', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'thit-bo'), 'Thit bo', 'thit-bo', 'SKU-BO-001', 'Thit bo tuoi', 180000, 165000, 40, 'kg', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'rau-la'), 'Rau cai', 'rau-cai', 'SKU-RAU-001', 'Rau cai xanh', 12000, NULL, 90, 'bo', 'active'),
+    ((SELECT id FROM categories WHERE slug = 'rau-cu'), 'Toi', 'toi', 'SKU-TOI-001', 'Toi thom', 10000, NULL, 70, 'cu', 'active')
 ON DUPLICATE KEY UPDATE
+    category_id = VALUES(category_id),
     name = VALUES(name),
     short_description = VALUES(short_description),
     price = VALUES(price),

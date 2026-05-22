@@ -7,6 +7,21 @@ function createCartError(message, statusCode = 400) {
     return error;
 }
 
+function getStockPerSaleUnit(product) {
+    const normalized = Number(product?.stock_per_sale_unit || 1);
+    return Number.isFinite(normalized) && normalized > 0 ? normalized : 1;
+}
+
+function getAvailableSaleQuantity(product) {
+    const stockQuantity = Number(product?.stock_quantity || 0);
+    const stockPerSaleUnit = getStockPerSaleUnit(product);
+    if (stockQuantity <= 0 || stockPerSaleUnit <= 0) {
+        return 0;
+    }
+
+    return Math.floor((stockQuantity + Number.EPSILON) / stockPerSaleUnit);
+}
+
 async function getActiveCartInstance(userId, transaction) {
     let cart = await Cart.findOne({
         where: {
@@ -36,7 +51,10 @@ function toPlainCart(cartInstance) {
             product_name: item.product ? item.product.name : null,
             product_slug: item.product ? item.product.slug : null,
             thumbnail_url: item.product ? item.product.thumbnail_url : null,
-            product_status: item.product ? item.product.status : null
+            product_status: item.product ? item.product.status : null,
+            sale_unit: item.product ? (item.product.sale_unit || item.product.unit) : null,
+            stock_unit: item.product ? item.product.stock_unit : null,
+            stock_per_sale_unit: item.product ? Number(item.product.stock_per_sale_unit || 1) : 1
         };
     });
 
@@ -65,6 +83,9 @@ function localizeCartItem(item) {
         thumbnail_url: "anh_dai_dien",
         product_status: "trang_thai_san_pham_ma",
         product_status_label: "trang_thai_san_pham_hien_thi",
+        sale_unit: "don_vi_ban",
+        stock_unit: "don_vi_kho",
+        stock_per_sale_unit: "so_quy_doi_don_vi_ban",
         created_at: "ngay_tao",
         updated_at: "ngay_cap_nhat"
     });
@@ -114,7 +135,7 @@ const CartModel = {
                         {
                             model: Product,
                             as: "product",
-                            attributes: ["id", "name", "slug", "thumbnail_url", "status"]
+                            attributes: ["id", "name", "slug", "thumbnail_url", "status", "unit", "sale_unit", "stock_unit", "stock_quantity", "stock_per_sale_unit"]
                         }
                     ]
                 }
@@ -156,7 +177,7 @@ const CartModel = {
                 ? Number(existingItem.quantity) + quantity
                 : quantity;
 
-            if (Number(product.stock_quantity) < nextQuantity) {
+            if (getAvailableSaleQuantity(product) < nextQuantity) {
                 throw createCartError("Số lượng tồn kho không đủ để thêm vào giỏ hàng.");
             }
 
@@ -206,7 +227,7 @@ const CartModel = {
             throw createCartError("Sản phẩm không tồn tại.", 404);
         }
 
-        if (Number(product.stock_quantity) < quantity) {
+        if (getAvailableSaleQuantity(product) < quantity) {
             throw createCartError("Số lượng tồn kho không đủ để cập nhật giỏ hàng.");
         }
 

@@ -137,11 +137,11 @@ exports.submitReview = async (req, res) => {
 
 exports.create = async (req, res) => {
     try {
-        const { category_id, name, slug, sku, price } = req.body;
+        const { category_id, category_slug, name, price } = req.body;
 
-        if (!category_id || !name || !slug || !sku || price === undefined) {
+        if ((!category_id && !category_slug) || !name || price === undefined) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui lòng nhập đầy đủ danh mục, tên sản phẩm, đường dẫn định danh (slug), mã sản phẩm (SKU) và giá bán."
+                message: "Vui lòng nhập category_id hoặc category_slug, cùng với tên sản phẩm và giá bán."
             }));
         }
 
@@ -183,7 +183,7 @@ exports.publish = async (req, res) => {
             }));
         }
 
-        const product = await Product.publish(id);
+        const product = await Product.publish(id, req.body);
         if (!product) {
             return res.status(404).json(withCommonResponseAliases({
                 message: "Không tìm thấy sản phẩm."
@@ -192,6 +192,32 @@ exports.publish = async (req, res) => {
 
         return res.json(withCommonResponseAliases({
             message: "Đưa sản phẩm lên bán thành công.",
+            product,
+            san_pham: product
+        }));
+    } catch (error) {
+        return handleError(res, error);
+    }
+};
+
+exports.setStoreAllocation = async (req, res) => {
+    try {
+        const id = parseId(req.params.id);
+        if (!id) {
+            return res.status(400).json(withCommonResponseAliases({
+                message: "Mã sản phẩm không hợp lệ."
+            }));
+        }
+
+        const product = await Product.setStoreAllocation(id, req.body);
+        if (!product) {
+            return res.status(404).json(withCommonResponseAliases({
+                message: "Không tìm thấy sản phẩm."
+            }));
+        }
+
+        return res.json(withCommonResponseAliases({
+            message: "Đã cập nhật phân bổ sản phẩm cho cửa hàng.",
             product,
             san_pham: product
         }));
@@ -209,7 +235,7 @@ exports.unpublish = async (req, res) => {
             }));
         }
 
-        const product = await Product.unpublish(id);
+        const product = await Product.unpublish(id, req.body);
         if (!product) {
             return res.status(404).json(withCommonResponseAliases({
                 message: "Không tìm thấy sản phẩm."

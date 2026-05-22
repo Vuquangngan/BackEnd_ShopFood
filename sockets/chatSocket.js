@@ -1,4 +1,4 @@
-﻿const { Server } = require("socket.io");
+const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 
 const Chat = require("../models/chatModel");
@@ -9,6 +9,8 @@ const { extractBearerOrRawToken } = require("../middlewares/authMiddleware");
 require("dotenv").config({ quiet: true });
 
 const STORE_ROOM = "store:team";
+const onlineUserCounts = new Map();
+let onlineStoreCount = 0;
 
 function userRoom(userId) {
     return `user:${userId}`;
@@ -16,6 +18,40 @@ function userRoom(userId) {
 
 function conversationRoom(conversationId) {
     return `conversation:${conversationId}`;
+}
+
+function isStoreOnline() {
+    return onlineStoreCount > 0;
+}
+
+function isUserOnline(userId) {
+    return Number(onlineUserCounts.get(Number(userId)) || 0) > 0;
+}
+
+function markUserConnected(user) {
+    const userId = Number(user?.id || 0);
+    if (!userId) return;
+
+    onlineUserCounts.set(userId, Number(onlineUserCounts.get(userId) || 0) + 1);
+    if (["admin", "staff"].includes(String(user.role || "").toLowerCase())) {
+        onlineStoreCount += 1;
+    }
+}
+
+function markUserDisconnected(user) {
+    const userId = Number(user?.id || 0);
+    if (!userId) return;
+
+    const nextCount = Number(onlineUserCounts.get(userId) || 0) - 1;
+    if (nextCount > 0) {
+        onlineUserCounts.set(userId, nextCount);
+    } else {
+        onlineUserCounts.delete(userId);
+    }
+
+    if (["admin", "staff"].includes(String(user.role || "").toLowerCase())) {
+        onlineStoreCount = Math.max(0, onlineStoreCount - 1);
+    }
 }
 
 function extractToken(socket) {
@@ -32,7 +68,7 @@ async function authenticateSocket(socket, next) {
     const token = extractToken(socket);
 
     if (!token) {
-        return next(new Error("Bạn cần đăng nhập để sử dụng chat realtime."));
+        return next(new Error("B?n c?n dang nh?p d? s? d?ng chat ."));
     }
 
     try {
@@ -40,7 +76,7 @@ async function authenticateSocket(socket, next) {
         const user = await User.findByPk(decoded.id);
 
         if (!user || user.status !== "active") {
-            return next(new Error("Tài khoản không thể dùng chat realtime."));
+            return next(new Error("T�i kho?n kh�ng th? d�ng chat ."));
         }
 
         socket.user = {
@@ -53,7 +89,7 @@ async function authenticateSocket(socket, next) {
 
         return next();
     } catch (error) {
-        return next(new Error("Token chat realtime không hợp lệ hoặc đã hết hạn."));
+        return next(new Error("Token chat realtime kh�ng h?p l? ho?c d� h?t h?n."));
     }
 }
 
@@ -91,6 +127,26 @@ function emitMessagesRead(payload) {
     io.to(conversationRoom(payload.conversation_id)).to(STORE_ROOM).emit("chat:messages:read", payload);
 }
 
+function emitUserPresence(io, user, isOnline) {
+    if (!io || !user?.id) return;
+
+    io.to(STORE_ROOM).to(userRoom(user.id)).emit("chat:presence", {
+        user_id: user.id,
+        role: user.role,
+        username: user.username,
+        is_online: Boolean(isOnline)
+    });
+}
+
+function emitStorePresence(io) {
+    if (!io) return;
+
+    io.emit("chat:store:presence", {
+        is_online: isStoreOnline(),
+        online_count: onlineStoreCount
+    });
+}
+
 function safeAck(callback, payload) {
     if (typeof callback === "function") {
         callback(payload);
@@ -110,29 +166,41 @@ function initializeChatSocket(httpServer) {
 
     io.on("connection", (socket) => {
         socket.join(userRoom(socket.user.id));
+        markUserConnected(socket.user);
 
         if (["admin", "staff"].includes(socket.user.role)) {
             socket.join(STORE_ROOM);
         }
+
+        emitUserPresence(io, socket.user, true);
+        emitStorePresence(io);
 
         socket.on("chat:join", async (payload = {}, callback) => {
             try {
                 const conversationId = Number(payload.conversation_id);
 
                 if (!Number.isInteger(conversationId) || conversationId <= 0) {
-                    throw new Error("Mã hội thoại không hợp lệ.");
+                    throw new Error("M� h?i tho?i kh�ng h?p l?.");
                 }
 
                 const conversation = await Chat.getConversationByIdForUser(conversationId, socket.user);
 
                 if (!conversation) {
-                    throw new Error("Không tìm thấy hội thoại.");
+                    throw new Error("Kh�ng t�m th?y h?i tho?i.");
                 }
 
                 socket.join(conversationRoom(conversation.id));
-                safeAck(callback, { success: true, conversation });
+                safeAck(callback, {
+                    success: true,
+                    conversation,
+                    presence: {
+                        customer_online: isUserOnline(conversation.customer?.id),
+                        store_online: isStoreOnline(),
+                        assigned_staff_online: isUserOnline(conversation.assigned_staff?.id)
+                    }
+                });
             } catch (error) {
-                safeAck(callback, { success: false, message: error.message || "Không thể tham gia hội thoại." });
+                safeAck(callback, { success: false, message: error.message || "Kh�ng th? tham gia h?i tho?i." });
             }
         });
 
@@ -151,14 +219,14 @@ function initializeChatSocket(httpServer) {
                 const conversationId = Number(payload.conversation_id);
 
                 if (!Number.isInteger(conversationId) || conversationId <= 0) {
-                    throw new Error("Mã hội thoại không hợp lệ.");
+                    throw new Error("M� h?i tho?i kh�ng h?p l?.");
                 }
 
                 const message = await Chat.createMessage(conversationId, socket.user, payload);
                 emitNewMessage(message);
                 safeAck(callback, { success: true, data: message });
             } catch (error) {
-                safeAck(callback, { success: false, message: error.message || "Không thể gửi tin nhắn." });
+                safeAck(callback, { success: false, message: error.message || "Kh�ng th? g?i tin nh?n." });
             }
         });
 
@@ -167,7 +235,7 @@ function initializeChatSocket(httpServer) {
                 const conversationId = Number(payload.conversation_id);
 
                 if (!Number.isInteger(conversationId) || conversationId <= 0) {
-                    throw new Error("Mã hội thoại không hợp lệ.");
+                    throw new Error("M� h?i tho?i kh�ng h?p l?.");
                 }
 
                 const result = await Chat.markConversationAsRead(conversationId, socket.user);
@@ -181,8 +249,42 @@ function initializeChatSocket(httpServer) {
                 emitMessagesRead(emitPayload);
                 safeAck(callback, { success: true, data: emitPayload });
             } catch (error) {
-                safeAck(callback, { success: false, message: error.message || "Không thể đánh dấu đã đọc." });
+                safeAck(callback, { success: false, message: error.message || "Kh�ng th? d�nh d?u d� d?c." });
             }
+        });
+
+        socket.on("chat:typing", async (payload = {}, callback) => {
+            try {
+                const conversationId = Number(payload.conversation_id);
+
+                if (!Number.isInteger(conversationId) || conversationId <= 0) {
+                    throw new Error("M� h?i tho?i kh�ng h?p l?.");
+                }
+
+                const conversation = await Chat.getConversationByIdForUser(conversationId, socket.user);
+                if (!conversation) {
+                    throw new Error("Kh�ng t�m th?y h?i tho?i.");
+                }
+
+                const typingPayload = {
+                    conversation_id: conversationId,
+                    user_id: socket.user.id,
+                    role: socket.user.role,
+                    username: socket.user.username,
+                    is_typing: Boolean(payload.is_typing)
+                };
+
+                emitToConversationAudience(io, conversation).emit("chat:typing", typingPayload);
+                safeAck(callback, { success: true, data: typingPayload });
+            } catch (error) {
+                safeAck(callback, { success: false, message: error.message || "Kh�ng th? c?p nh?t tr?ng th�i g�." });
+            }
+        });
+
+        socket.on("disconnect", () => {
+            markUserDisconnected(socket.user);
+            emitUserPresence(io, socket.user, false);
+            emitStorePresence(io);
         });
     });
 

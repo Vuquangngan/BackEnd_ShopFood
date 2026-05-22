@@ -5,6 +5,7 @@ const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietname
 const COUPON_FIELDS = [
     "code",
     "description",
+    "campaign_metadata",
     "discount_type",
     "discount_value",
     "min_order_value",
@@ -37,6 +38,7 @@ function localizeCoupon(coupon) {
     return addVietnameseAliases(localized, {
         code: "ma_giam_gia",
         description: "mo_ta",
+        campaign_metadata: "du_lieu_chien_dich",
         discount_type: "loai_giam_gia_ma",
         discount_type_label: "loai_giam_gia_hien_thi",
         discount_value: "gia_tri_giam",
@@ -70,7 +72,56 @@ function calculateDiscountAmount(coupon, subtotal) {
     return Number(Math.min(Number(coupon.discount_value || 0), subtotalValue).toFixed(2));
 }
 
-function ensureCouponIsUsable(coupon, subtotal) {
+function parseCampaignMetadata(coupon) {
+    try {
+        return coupon?.campaign_metadata ? JSON.parse(coupon.campaign_metadata) : {};
+    } catch (_error) {
+        return {};
+    }
+}
+
+function resolveApplicableSubtotal(coupon, subtotal, items = []) {
+    const metadata = parseCampaignMetadata(coupon);
+    const applyScope = metadata.apply_scope === "categories" ? "categories" : "products";
+    const productIds = Array.isArray(metadata.applied_product_ids)
+        ? metadata.applied_product_ids.map((id) => Number(id)).filter(Boolean)
+        : [];
+    const categoryIds = Array.isArray(metadata.applied_category_ids)
+        ? metadata.applied_category_ids.map((id) => Number(id)).filter(Boolean)
+        : [];
+
+    if (
+        (applyScope === "products" && !productIds.length)
+        || (applyScope === "categories" && !categoryIds.length)
+        || !Array.isArray(items)
+        || !items.length
+    ) {
+        return Number(subtotal || 0);
+    }
+
+    const productIdSet = new Set(productIds);
+    const categoryIdSet = new Set(categoryIds);
+    const eligibleSubtotal = items.reduce((sum, item) => {
+        const productId = Number(item.product_id || item.productId || item.id || 0);
+        const categoryId = Number(item.category_id || item.categoryId || item.product?.category_id || item.product?.categoryId || 0);
+
+        if (applyScope === "products" && !productIdSet.has(productId)) return sum;
+        if (applyScope === "categories" && !categoryIdSet.has(categoryId)) return sum;
+
+        const lineTotal = Number(item.line_total || item.lineTotal || 0);
+        if (lineTotal > 0) return sum + lineTotal;
+
+        return sum + (Number(item.unit_price || item.price || 0) * Number(item.quantity || 0));
+    }, 0);
+
+    if (eligibleSubtotal <= 0) {
+        throw createCouponError("Mã giảm giá không áp dụng cho sản phẩm trong đơn hàng này.");
+    }
+
+    return Number(eligibleSubtotal.toFixed(2));
+}
+
+function ensureCouponIsUsable(coupon, subtotal, context = {}) {
     if (!coupon) {
         throw createCouponError("Không tìm thấy mã giảm giá.", 404);
     }
@@ -101,7 +152,8 @@ function ensureCouponIsUsable(coupon, subtotal) {
         }
     }
 
-    return calculateDiscountAmount(coupon, subtotal);
+    const applicableSubtotal = resolveApplicableSubtotal(coupon, subtotal, context.items);
+    return calculateDiscountAmount(coupon, applicableSubtotal);
 }
 
 const CouponModel = {
@@ -141,6 +193,7 @@ const CouponModel = {
         const coupon = await Coupon.create({
             code: data.code,
             description: data.description || null,
+            campaign_metadata: data.campaign_metadata || null,
             discount_type: data.discount_type,
             discount_value: data.discount_value,
             min_order_value: data.min_order_value || null,
@@ -182,7 +235,7 @@ const CouponModel = {
     async validateCoupon(payload = {}) {
         const coupon = await Coupon.findOne({ where: { code: payload.code } });
         const plainCoupon = toPlainCoupon(coupon);
-        const discountAmount = ensureCouponIsUsable(plainCoupon, payload.subtotal);
+        const discountAmount = ensureCouponIsUsable(plainCoupon, payload.subtotal, { items: payload.items });
 
         return {
             coupon: localizeCoupon(plainCoupon),
@@ -194,7 +247,7 @@ const CouponModel = {
         };
     },
 
-    async resolveCouponForOrder({ couponId, couponCode, subtotal, transaction }) {
+    async resolveCouponForOrder({ couponId, couponCode, subtotal, items = [], transaction }) {
         if (!couponId && !couponCode) {
             return {
                 coupon: null,
@@ -207,7 +260,7 @@ const CouponModel = {
             : await Coupon.findOne({ where: { code: couponCode }, transaction });
 
         const plainCoupon = toPlainCoupon(coupon);
-        const discountAmount = ensureCouponIsUsable(plainCoupon, subtotal);
+        const discountAmount = ensureCouponIsUsable(plainCoupon, subtotal, { items });
 
         return {
             coupon,

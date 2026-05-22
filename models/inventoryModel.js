@@ -13,6 +13,7 @@ const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietname
 const SUPPLIER_FIELDS = [
     "name",
     "code",
+    "logo_url",
     "contact_person",
     "phone",
     "email",
@@ -72,7 +73,7 @@ function normalizeItems(items = []) {
                 : Number(item.unit_cost),
             note: item.note ? String(item.note).trim() : null
         }))
-        .filter((item) => Number.isInteger(item.product_id) && item.product_id > 0 && Number.isInteger(item.quantity) && item.quantity > 0);
+        .filter((item) => Number.isInteger(item.product_id) && item.product_id > 0 && Number.isFinite(item.quantity) && item.quantity > 0);
 }
 
 function getDocumentConfig(type) {
@@ -84,14 +85,16 @@ function getDocumentConfig(type) {
 }
 
 function buildNextProductState(product, nextStock) {
+    const normalizedStock = Number(Number(nextStock).toFixed(3));
+
     if (product.status === "archived") {
         return {
-            stock_quantity: nextStock,
+            stock_quantity: normalizedStock,
             status: "archived"
         };
     }
 
-    if (nextStock <= 0) {
+    if (normalizedStock <= 0) {
         return {
             stock_quantity: 0,
             status: "out_of_stock"
@@ -100,14 +103,14 @@ function buildNextProductState(product, nextStock) {
 
     if (!product.is_published) {
         return {
-            stock_quantity: nextStock,
+            stock_quantity: normalizedStock,
             status: "draft"
         };
     }
 
     return {
-        stock_quantity: nextStock,
-        status: "active"
+        stock_quantity: normalizedStock,
+        status: normalizedStock > 0 ? "active" : "out_of_stock"
     };
 }
 
@@ -119,6 +122,7 @@ function localizeSupplier(supplier) {
     });
 
     return addVietnameseAliases(localized, {
+        logo_url: "logo_doi_tac",
         contact_person: "nguoi_lien_he",
         phone: "so_dien_thoai",
         email: "email_nha_cung_cap",

@@ -2,6 +2,7 @@
 const { withCommonResponseAliases } = require("../utils/responseHelpers");
 const { attachCheckoutUrl, buildCheckoutUrl } = require("../utils/paymentHelpers");
 const { createForRoles, createForUser } = require("../services/notificationService");
+const zaloPayService = require("../services/zaloPayService");
 
 function handleError(res, error) {
     return res.status(error.statusCode || 500).json(withCommonResponseAliases({
@@ -94,6 +95,83 @@ exports.cancel = async (req, res) => {
     }
 };
 
+exports.zaloPayCallback = async (req, res) => {
+    try {
+        const { data, mac } = req.body || {};
+        if (!data || !mac || !zaloPayService.verifyCallback(data, mac)) {
+            return res.json({
+                return_code: 2,
+                return_message: "Invalid"
+            });
+        }
+
+        const callbackData = JSON.parse(data);
+        const payment = await Payment.confirmZaloPayPayment(callbackData.app_trans_id, callbackData);
+        const orderUserId = payment.order?.user_id || payment.order?.ma_nguoi_dung;
+
+        if (orderUserId) {
+            await createForUser(orderUserId, {
+                type: "payment",
+                title: "Thanh toán ZaloPay thành công",
+                message: `Đơn hàng ${payment.order?.order_code || payment.order?.ma_don_hang} đã được thanh toán qua ZaloPay.`,
+                metadata: {
+                    order_id: payment.order?.id,
+                    payment_code: payment.payment_code,
+                    gateway: payment.gateway,
+                    status: payment.status
+                }
+            });
+        }
+
+        await createForRoles(["admin", "staff"], {
+            type: "payment",
+            title: "Có đơn hàng đã thanh toán qua ZaloPay",
+            message: `Thanh toán ${payment.payment_code} đã được ZaloPay xác nhận thành công.`,
+            metadata: {
+                order_id: payment.order?.id,
+                payment_code: payment.payment_code,
+                gateway: payment.gateway,
+                status: payment.status
+            }
+        });
+
+        return res.json({
+            return_code: 1,
+            return_message: "Success"
+        });
+    } catch (error) {
+        console.error("ZaloPay callback error:", error.message || error);
+        return res.json({
+            return_code: 2,
+            return_message: "Invalid"
+        });
+    }
+};
+
+exports.zaloPayReturn = async (req, res) => {
+    return res.send(`<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kết quả thanh toán ZaloPay</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; background: #f6fbf2; color: #162016; }
+.box { max-width: 520px; margin: 48px auto; background: white; border-radius: 18px; padding: 24px; box-shadow: 0 12px 36px rgba(0,0,0,.08); }
+h1 { font-size: 22px; margin: 0 0 10px; }
+p { line-height: 1.5; color: #425142; }
+</style>
+</head>
+<body>
+<div class="box">
+<h1>Đã quay lại Garden Fresh</h1>
+<p>Nếu bạn đã thanh toán thành công, đơn hàng sẽ được cập nhật sau khi ZaloPay gửi xác nhận về hệ thống.</p>
+<p>Bạn có thể đóng trang này và quay lại ứng dụng để xem trạng thái đơn hàng.</p>
+</div>
+</body>
+</html>`);
+};
+
 exports.renderCheckoutPage = async (req, res) => {
     try {
         const payment = attachCheckoutUrl(req, await Payment.getByToken(req.params.token));
@@ -106,7 +184,7 @@ exports.renderCheckoutPage = async (req, res) => {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Thanh toán online ShopFood</title>
+<title>Thanh toán online Garden Fresh</title>
 <style>
 body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #fff8ef, #f2f8ff); color: #222; margin: 0; }
 .container { max-width: 620px; margin: 40px auto; background: #fff; border-radius: 20px; box-shadow: 0 18px 60px rgba(0,0,0,0.08); padding: 28px; }
@@ -126,7 +204,7 @@ button { border: 0; border-radius: 12px; padding: 14px 18px; font-size: 15px; fo
 <body>
 <div class="container">
 <span class="badge">Cổng thanh toán giả lập</span>
-<h1>Thanh toán đơn hàng ShopFood</h1>
+<h1>Thanh toán đơn hàng Garden Fresh</h1>
 <p>Trang này dùng để mô phỏng thanh toán online trong quá trình làm đồ án và test API.</p>
 <div class="grid">
 <div class="card"><div class="label">Mã thanh toán</div><div class="value">${escapeHtml(payment.payment_code)}</div></div>

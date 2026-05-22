@@ -446,6 +446,38 @@ const ChatModel = {
             conversation_id: "ma_hoi_thoai",
             read_count: "so_tin_nhan_da_danh_dau_doc"
         });
+    },
+
+    async updateConversationStatus(conversationId, actor, nextStatus) {
+        if (actor.role === "customer") {
+            const error = new Error("Bạn không có quyền cập nhật trạng thái hội thoại.");
+            error.status = 403;
+            throw error;
+        }
+
+        const normalizedStatus = ["open", "closed"].includes(nextStatus) ? nextStatus : null;
+        if (!normalizedStatus) {
+            const error = new Error("Trạng thái hội thoại không hợp lệ.");
+            error.status = 400;
+            throw error;
+        }
+
+        const conversation = await ChatConversation.findByPk(conversationId, {
+            include: buildConversationInclude()
+        });
+
+        if (!conversation) {
+            const error = new Error("Không tìm thấy hội thoại.");
+            error.status = 404;
+            throw error;
+        }
+
+        await conversation.update({
+            status: normalizedStatus,
+            assigned_staff_id: conversation.assigned_staff_id || actor.id
+        });
+
+        return localizeConversation(await attachUnreadCount(conversation, actor.id));
     }
 };
 

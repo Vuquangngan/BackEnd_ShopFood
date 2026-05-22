@@ -1,5 +1,7 @@
 ﻿const { randomInt } = require("crypto");
 const bcrypt = require("bcryptjs");
+const { randomBytes } = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 
 const User = require("../models/userModel");
 const { authenticate } = require("../middlewares/authMiddleware");
@@ -17,6 +19,8 @@ const {
 
 require("dotenv").config({ quiet: true });
 
+const googleClient = new OAuth2Client();
+
 function localizeUser(user) {
     if (!user) return null;
 
@@ -25,7 +29,8 @@ function localizeUser(user) {
         role: "vai_tro_ma",
         role_label: "vai_tro_hien_thi",
         status: "trang_thai_ma",
-        status_label: "trang_thai_hien_thi"
+        status_label: "trang_thai_hien_thi",
+        must_change_password: "bat_buoc_doi_mat_khau"
     });
 }
 
@@ -37,7 +42,8 @@ function buildResponseUser(user) {
         role: user.role,
         role_label: getVietnameseLabel("user_role", user.role),
         status: user.status,
-        status_label: getVietnameseLabel("user_status", user.status)
+        status_label: getVietnameseLabel("user_status", user.status),
+        must_change_password: Boolean(user.must_change_password)
     });
 }
 
@@ -66,9 +72,35 @@ function generateTemporaryPassword(length = 10) {
     return password;
 }
 
+function buildGoogleUsername(payload) {
+    if (payload.name && String(payload.name).trim()) {
+        return String(payload.name).trim().slice(0, 100);
+    }
+
+    const email = String(payload.email || "").trim().toLowerCase();
+    const emailPrefix = email.split("@")[0];
+    return (emailPrefix || `google-user-${Date.now()}`).slice(0, 100);
+}
+
+async function verifyGoogleIdToken(idToken) {
+    const audience = process.env.GOOGLE_WEB_CLIENT_ID;
+    if (!audience) {
+        throw new Error("Dang nhap Google chua duoc cau hinh. Vui long bo sung GOOGLE_WEB_CLIENT_ID trong file .env.");
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience
+    });
+
+    return ticket.getPayload();
+}
+
 exports.register = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const username = String(req.body.username || "").trim();
+        const email = String(req.body.email || "").trim().toLowerCase();
+        const password = String(req.body.password || "");
 
         if (!username || !email || !password) {
             return res.status(400).json(withCommonResponseAliases({
@@ -92,14 +124,15 @@ exports.register = async (req, res) => {
         }));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "Đã xảy ra lỗi máy chủ."
+            message: error.message || "Đã xảy ra lỗi."
         }));
     }
 };
 
 exports.login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const email = String(req.body.email || "").trim().toLowerCase();
+        const password = String(req.body.password || "");
 
         if (!email || !password) {
             return res.status(400).json(withCommonResponseAliases({
@@ -124,7 +157,50 @@ exports.login = async (req, res) => {
         return res.json(await buildAuthPayload(user, req));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "Đã xảy ra lỗi máy chủ."
+            message: error.message || "Đã xảy ra lỗi."
+        }));
+    }
+};
+
+exports.googleLogin = async (req, res) => {
+    try {
+        const idToken = req.body.id_token || req.body.idToken;
+        if (!idToken) {
+            return res.status(400).json(withCommonResponseAliases({
+                message: "Vui long gui Google ID token."
+            }));
+        }
+
+        const payload = await verifyGoogleIdToken(idToken);
+        if (!payload?.email) {
+            return res.status(400).json(withCommonResponseAliases({
+                message: "Khong lay duoc email tu tai khoan Google."
+            }));
+        }
+
+        if (payload.email_verified === false) {
+            return res.status(400).json(withCommonResponseAliases({
+                message: "Email Google chua duoc xac minh."
+            }));
+        }
+
+        let user = await User.findByEmail(payload.email);
+        if (!user) {
+            const generatedPassword = bcrypt.hashSync(randomBytes(32).toString("hex"), 10);
+            user = await User.createUser(
+                buildGoogleUsername(payload),
+                payload.email,
+                generatedPassword,
+                {
+                    must_change_password: false
+                }
+            );
+        }
+
+        return res.json(await buildAuthPayload(user, req));
+    } catch (error) {
+        return res.status(500).json(withCommonResponseAliases({
+            message: error.message || "Khong the dang nhap bang Google vao luc nay."
         }));
     }
 };
@@ -149,7 +225,7 @@ exports.refreshToken = async (req, res) => {
         const accessToken = generateAccessToken(rotated.user);
 
         return res.json(withCommonResponseAliases({
-            message: "Làm mới phiên đăng nhập thành công.",
+            message: "Đăng nhập thành công.",
             token: accessToken,
             access_token: accessToken,
             refresh_token: rotated.refresh_token,
@@ -158,7 +234,7 @@ exports.refreshToken = async (req, res) => {
         }));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "Không thể làm mới phiên đăng nhập vào lúc này."
+            message: error.message || "Không thể đăng nhập vào lúc này."
         }));
     }
 };
@@ -197,7 +273,7 @@ exports.forgotPassword = async (req, res) => {
 
         const user = await User.findByEmail(email);
         const genericSuccess = withCommonResponseAliases({
-            message: "Nếu email tồn tại trong hệ thống, mật khẩu tạm thời đã được gửi tới hộp thư của bạn."
+            message: "Mật khẩu tạm thời đã được gửi tới email của bạn."
         });
 
         if (!user) {
@@ -208,7 +284,9 @@ exports.forgotPassword = async (req, res) => {
         const temporaryPassword = generateTemporaryPassword();
         const newPasswordHash = bcrypt.hashSync(temporaryPassword, 10);
 
-        await User.updatePassword(user.id, newPasswordHash);
+        await User.updatePassword(user.id, newPasswordHash, {
+            must_change_password: true
+        });
 
         try {
             await sendForgotPasswordEmail({
@@ -218,7 +296,9 @@ exports.forgotPassword = async (req, res) => {
             });
             await revokeAllUserSessions(user.id);
         } catch (error) {
-            await User.updatePassword(user.id, oldPasswordHash);
+            await User.updatePassword(user.id, oldPasswordHash, {
+                must_change_password: false
+            });
             throw error;
         }
 
@@ -261,7 +341,9 @@ exports.changePassword = [authenticate, async (req, res) => {
         }
 
         const hashedPassword = bcrypt.hashSync(new_password, 10);
-        await User.updatePassword(user.id, hashedPassword);
+        await User.updatePassword(user.id, hashedPassword, {
+            must_change_password: false
+        });
         await revokeAllUserSessions(user.id);
 
         return res.json(withCommonResponseAliases({

@@ -1,11 +1,11 @@
-﻿const crypto = require("crypto");
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { Op } = require("sequelize");
 const { RefreshToken, User } = require("../models");
 
 require("dotenv").config({ quiet: true });
 
-const ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
+const ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "2h";
 const REFRESH_TOKEN_TTL_DAYS = Math.max(Number(process.env.REFRESH_TOKEN_TTL_DAYS) || 30, 1);
 
 function hashRefreshToken(token) {
@@ -124,3 +124,4 @@ module.exports = {
     revokeRefreshSession,
     revokeAllUserSessions
 };
+

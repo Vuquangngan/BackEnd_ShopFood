@@ -9,7 +9,7 @@ function attachCheckoutUrl(req, payment) {
         return payment;
     }
 
-    const checkoutUrl = buildCheckoutUrl(req, payment.checkout_token);
+    const checkoutUrl = payment.checkout_url || payment.gateway_checkout_url || buildCheckoutUrl(req, payment.checkout_token);
 
     return addVietnameseAliases({
         ...payment,
