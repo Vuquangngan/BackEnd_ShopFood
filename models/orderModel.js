@@ -19,6 +19,7 @@ const RETURN_REQUEST_WINDOW_MS = 72 * 60 * 60 * 1000;
 const GRAB_DEV_PROVIDER = "grab_dev";
 const GRAB_DEV_STATUS_FLOW = ["driver_assigned", "delivering", "delivered"];
 const NON_CANCELABLE_SHIPPING_STATUSES = new Set(["picked_up", "delivering", "delivered"]);
+const ORDER_TABLE_ALIAS = "\"Order\"";
 
 function createOrderError(message, statusCode = 400) {
     const error = new Error(message);
@@ -353,7 +354,7 @@ const OrderModel = {
             where,
             attributes: {
                 include: [
-                    [literal("(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = Order.id)"), "item_count"]
+                    [literal(`(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = ${ORDER_TABLE_ALIAS}.id)`), "item_count"]
                 ]
             },
             include: [
@@ -385,7 +386,7 @@ const OrderModel = {
         const order = await Order.findByPk(id, {
             attributes: {
                 include: [
-                    [literal("(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = Order.id)"), "item_count"]
+                    [literal(`(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = ${ORDER_TABLE_ALIAS}.id)`), "item_count"]
                 ]
             },
             include: [

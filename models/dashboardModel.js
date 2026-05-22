@@ -2,6 +2,8 @@
 const { User, Product, Order, ChatConversation, ProductReview, Notification } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
 
+const PRODUCT_TABLE_ALIAS = "\"Product\"";
+
 function localizeOrder(order) {
     if (!order) return null;
 
@@ -82,9 +84,9 @@ const DashboardModel = {
                     "id",
                     "name",
                     "sku",
-                    [literal("(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.product_id = Product.id)"), "sold_quantity"],
-                    [literal("(SELECT COALESCE(AVG(pr.rating), 0) FROM product_reviews pr WHERE pr.product_id = Product.id)"), "average_rating"],
-                    [literal("(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id)"), "review_count"]
+                    [literal(`(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "sold_quantity"],
+                    [literal(`(SELECT COALESCE(AVG(pr.rating), 0) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "average_rating"],
+                    [literal(`(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "review_count"]
                 ],
                 order: [[literal("sold_quantity"), "DESC"], [literal("average_rating"), "DESC"], ["created_at", "DESC"]],
                 limit: 5,
