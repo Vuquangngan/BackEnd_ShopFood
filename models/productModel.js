@@ -24,15 +24,16 @@ const PRODUCT_FIELDS = [
     "status"
 ];
 
-const AVERAGE_RATING_SQL = "(SELECT COALESCE(AVG(pr.rating), 0) FROM product_reviews pr WHERE pr.product_id = Product.id)";
-const REVIEW_COUNT_SQL = "(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = Product.id)";
-const CURRENT_PRICE_SQL = "COALESCE(Product.sale_price, Product.price)";
+const PRODUCT_TABLE_ALIAS = "\"Product\"";
+const AVERAGE_RATING_SQL = `(SELECT COALESCE(AVG(pr.rating), 0) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`;
+const REVIEW_COUNT_SQL = `(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`;
+const CURRENT_PRICE_SQL = `COALESCE(${PRODUCT_TABLE_ALIAS}.sale_price, ${PRODUCT_TABLE_ALIAS}.price)`;
 const LATEST_SUPPLIER_NAME_SQL = `(
     SELECT s.name
     FROM inventory_document_items idi
     INNER JOIN inventory_documents idoc ON idoc.id = idi.document_id
     INNER JOIN suppliers s ON s.id = idoc.supplier_id
-    WHERE idi.product_id = Product.id
+    WHERE idi.product_id = ${PRODUCT_TABLE_ALIAS}.id
       AND idoc.supplier_id IS NOT NULL
       AND idoc.type = 'receipt'
       AND idoc.status = 'completed'
