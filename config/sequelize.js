@@ -15,7 +15,7 @@ if (dialect === "postgres" && process.env.DB_SSL !== "false") {
     baseOptions.dialectOptions = {
         ssl: {
             require: true,
-            rejectUnauthorized: false
+            rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true"
         }
     };
 }
