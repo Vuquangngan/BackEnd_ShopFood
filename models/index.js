@@ -178,7 +178,7 @@ const ProductReview = sequelize.define("ProductReview", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     user_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    rating: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false },
+    rating: { type: DataTypes.SMALLINT, allowNull: false },
     comment: { type: DataTypes.TEXT }
 }, {
     ...commonOptions,
@@ -494,7 +494,7 @@ const RecipeReview = sequelize.define("RecipeReview", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     user_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     recipe_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
-    rating: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false },
+    rating: { type: DataTypes.SMALLINT, allowNull: false },
     comment: { type: DataTypes.TEXT }
 }, {
     ...commonOptions,
