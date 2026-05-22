@@ -2,6 +2,18 @@ const { Sequelize } = require("sequelize");
 require("dotenv").config({ quiet: true });
 
 const dialect = process.env.DB_DIALECT || (process.env.DATABASE_URL ? "postgres" : "mysql");
+function normalizeDatabaseUrl(value) {
+    if (!value || dialect !== "postgres") return value;
+
+    try {
+        const url = new URL(value);
+        url.searchParams.delete("sslmode");
+        return url.toString();
+    } catch (_error) {
+        return value;
+    }
+}
+
 const baseOptions = {
     dialect,
     logging: false,
@@ -21,7 +33,7 @@ if (dialect === "postgres" && process.env.DB_SSL !== "false") {
 }
 
 const sequelize = process.env.DATABASE_URL
-    ? new Sequelize(process.env.DATABASE_URL, baseOptions)
+    ? new Sequelize(normalizeDatabaseUrl(process.env.DATABASE_URL), baseOptions)
     : new Sequelize(
         process.env.DB_NAME || "shopfood",
         process.env.DB_USER || "root",
