@@ -34,12 +34,25 @@ const emailCampaignRoutes = require("./routes/emailCampaignRoutes");
 const app = express();
 const httpServer = http.createServer(app);
 
-app.use(cors({
-  origin: [
+const allowedOrigins = [
     "http://localhost:4173",
-    "http://localhost:3000"
-  ],
-  credentials: true
+    "http://localhost:3000",
+    "https://vuquangngan.github.io",
+    "https://vuquangngan.github.io/BackEnd_ShopFood"
+];
+
+if (process.env.FRONTEND_ORIGINS) {
+    allowedOrigins.push(
+        ...process.env.FRONTEND_ORIGINS
+            .split(",")
+            .map((origin) => origin.trim())
+            .filter(Boolean)
+    );
+}
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
 }));
 app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
