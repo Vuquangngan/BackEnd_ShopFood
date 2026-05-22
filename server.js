@@ -585,6 +585,9 @@ async function ensureRuntimeSchema() {
 async function startServer() {
     try {
         await sequelize.authenticate();
+        if (process.env.DB_SYNC_ON_START !== "false") {
+            await sequelize.sync({ alter: true });
+        }
         await ensureRuntimeSchema();
         initializeChatSocket(httpServer);
         console.log("Kết nối Sequelize thành công.");

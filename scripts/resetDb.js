@@ -9,8 +9,8 @@ async function main() {
     } catch (error) {
         console.error("Không thể đặt lại schema ORM.");
         console.error(error.message || error);
-        if ((error.message || "").includes("Unknown database")) {
-            console.error(`Hãy tạo cơ sở dữ liệu ${process.env.DB_NAME || "shopfood"} trong MySQL trước, sau đó chạy lại lệnh này.`);
+        if ((error.message || "").includes("Unknown database") || (error.message || "").includes("does not exist")) {
+            console.error(`Hãy tạo cơ sở dữ liệu ${process.env.DB_NAME || "shopfood"} trước, sau đó chạy lại lệnh này.`);
         }
         process.exit(1);
     } finally {

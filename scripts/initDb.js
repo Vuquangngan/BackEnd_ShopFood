@@ -9,8 +9,8 @@ async function main() {
     } catch (error) {
         console.error("KhÃ´ng thá»ƒ khá»Ÿi táº¡o schema ORM.");
         console.error(error.message || error);
-        if ((error.message || "").includes("Unknown database")) {
-            console.error(`HÃ£y táº¡o cÆ¡ sá»Ÿ dá»¯ liá»‡u ${process.env.DB_NAME || "shopfood"} trong MySQL trÆ°á»›c, sau Ä‘Ã³ cháº¡y láº¡i lá»‡nh nÃ y.`);
+        if ((error.message || "").includes("Unknown database") || (error.message || "").includes("does not exist")) {
+            console.error(`Hãy tạo cơ sở dữ liệu ${process.env.DB_NAME || "shopfood"} trước, sau đó chạy lại lệnh này.`);
         }
         process.exit(1);
     } finally {
