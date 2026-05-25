@@ -32,6 +32,7 @@ const RECIPE_FIELDS = [
     "calories",
     "status"
 ];
+const RECIPE_TABLE_ALIAS = "\"Recipe\"";
 
 function normalizeIngredients(ingredients = []) {
     if (!Array.isArray(ingredients)) return [];
@@ -247,8 +248,8 @@ function localizeRecipe(recipe) {
 }
 
 const recipeCountAttributes = [
-    [literal("(SELECT COUNT(*) FROM recipe_favorites rf WHERE rf.recipe_id = Recipe.id)"), "favorite_count"],
-    [literal("(SELECT COUNT(*) FROM recipe_reviews rr WHERE rr.recipe_id = Recipe.id)"), "review_count"]
+    [literal(`(SELECT COUNT(*) FROM recipe_favorites rf WHERE rf.recipe_id = ${RECIPE_TABLE_ALIAS}.id)`), "favorite_count"],
+    [literal(`(SELECT COUNT(*) FROM recipe_reviews rr WHERE rr.recipe_id = ${RECIPE_TABLE_ALIAS}.id)`), "review_count"]
 ];
 
 const RecipeModel = {

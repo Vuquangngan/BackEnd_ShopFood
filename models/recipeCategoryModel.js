@@ -3,6 +3,7 @@ const { RecipeCategory } = require("./index");
 const { addVietnameseAliases } = require("../utils/vietnameseLabels");
 
 const RECIPE_CATEGORY_FIELDS = ["name", "slug", "description", "image_url", "color_hex", "is_active"];
+const RECIPE_CATEGORY_TABLE_ALIAS = "\"RecipeCategory\"";
 
 function toPlainRecipeCategory(categoryInstance) {
     if (!categoryInstance) return null;
@@ -30,7 +31,7 @@ const RecipeCategoryModel = {
         const categories = await RecipeCategory.findAll({
             attributes: {
                 include: [
-                    [literal("(SELECT COUNT(*) FROM recipes r WHERE r.recipe_category_id = RecipeCategory.id)"), "recipe_count"]
+                    [literal(`(SELECT COUNT(*) FROM recipes r WHERE r.recipe_category_id = ${RECIPE_CATEGORY_TABLE_ALIAS}.id)`), "recipe_count"]
                 ]
             },
             order: [["name", "ASC"]]
@@ -43,7 +44,7 @@ const RecipeCategoryModel = {
         const category = await RecipeCategory.findByPk(id, {
             attributes: {
                 include: [
-                    [literal("(SELECT COUNT(*) FROM recipes r WHERE r.recipe_category_id = RecipeCategory.id)"), "recipe_count"]
+                    [literal(`(SELECT COUNT(*) FROM recipes r WHERE r.recipe_category_id = ${RECIPE_CATEGORY_TABLE_ALIAS}.id)`), "recipe_count"]
                 ]
             }
         });
