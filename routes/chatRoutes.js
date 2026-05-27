@@ -1,12 +1,14 @@
 const express = require("express");
 
 const chatController = require("../controllers/chatController");
+const aiController = require("../controllers/aiController");
 const { authenticate } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
 router.use(authenticate);
 
+router.post("/ai-support", aiController.askSupport);
 router.get("/conversations", chatController.getConversations);
 router.post("/conversations", chatController.createOrGetConversation);
 router.get("/conversations/:id", chatController.getConversationById);

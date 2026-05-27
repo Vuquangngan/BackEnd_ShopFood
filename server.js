@@ -30,6 +30,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const staffShiftRoutes = require("./routes/staffShiftRoutes");
 const emailCampaignRoutes = require("./routes/emailCampaignRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -64,6 +65,14 @@ app.get("/api-docs.json", (req, res) => {
     res.json(swaggerSpec);
 });
 
+app.get("/health", (req, res) => {
+    res.json({
+        status: "ok",
+        service: "garden-fresh-api",
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -79,6 +88,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/staff-shifts", staffShiftRoutes);
 app.use("/api/email-campaigns", emailCampaignRoutes);
+app.use("/api/ai", aiRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/api/chat", chatRoutes);
 
@@ -305,6 +315,12 @@ async function ensureRuntimeSchema() {
     if (!productTable.expiration_date) {
         await queryInterface.addColumn("products", "expiration_date", {
             type: DataTypes.DATEONLY,
+            allowNull: true
+        });
+    }
+    if (productTable.thumbnail_url) {
+        await queryInterface.changeColumn("products", "thumbnail_url", {
+            type: DataTypes.TEXT,
             allowNull: true
         });
     }
@@ -585,7 +601,10 @@ async function ensureRuntimeSchema() {
 async function startServer() {
     try {
         await sequelize.authenticate();
-        if (process.env.DB_SYNC_ON_START !== "false") {
+        const isHostedRuntime = process.env.NODE_ENV === "production" || Boolean(process.env.RENDER);
+        const shouldSyncOnStart = process.env.DB_SYNC_ON_START === "true"
+            || (!isHostedRuntime && process.env.DB_SYNC_ON_START !== "false");
+        if (shouldSyncOnStart) {
             await sequelize.sync({ alter: true });
         }
         await ensureRuntimeSchema();
