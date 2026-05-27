@@ -1,5 +1,13 @@
 const { Op } = require("sequelize");
-const { Product, Category, Recipe, Coupon } = require("../models");
+const {
+    Product,
+    Category,
+    Recipe,
+    RecipeCategory,
+    RecipeIngredient,
+    RecipeStep,
+    Coupon
+} = require("../models");
 const { withCommonResponseAliases } = require("../utils/responseHelpers");
 
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -14,6 +22,30 @@ function cleanText(value, maxLength = 4000) {
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, maxLength);
+}
+
+function formatRecipeForAi(recipe) {
+    const time = Number(recipe.prep_time_minutes || 0) + Number(recipe.cook_time_minutes || 0);
+    const ingredients = (recipe.ingredients || [])
+        .map((ingredient) => {
+            const name = ingredient.product?.name || ingredient.ingredient_name;
+            const quantity = ingredient.quantity ? `${ingredient.quantity} ${ingredient.unit || ""}`.trim() : "";
+            const note = ingredient.note ? `, ${ingredient.note}` : "";
+            return `${name}${quantity ? ` (${quantity}${note})` : note}`;
+        })
+        .filter(Boolean)
+        .join("; ");
+    const steps = (recipe.steps || [])
+        .map((step) => `${step.step_number || ""}. ${step.instruction || ""}`.trim())
+        .filter(Boolean)
+        .join(" ");
+
+    return [
+        `- ${recipe.title}: ${recipe.description || ""}`,
+        `Danh mục: ${recipe.recipe_category?.name || "khác"}. Độ khó: ${recipe.difficulty || "dễ"}. Thời gian: ${time} phút. Trạng thái: ${recipe.status || ""}.`,
+        ingredients ? `Nguyên liệu: ${ingredients}.` : "",
+        steps ? `Cách làm: ${steps}` : ""
+    ].filter(Boolean).join(" ");
 }
 
 async function buildShopContext() {
@@ -34,8 +66,36 @@ async function buildShopContext() {
         }),
         Recipe.findAll({
             attributes: ["title", "description", "difficulty", "prep_time_minutes", "cook_time_minutes", "status"],
+            include: [
+                {
+                    model: RecipeCategory,
+                    as: "recipe_category",
+                    attributes: ["name"]
+                },
+                {
+                    model: RecipeIngredient,
+                    as: "ingredients",
+                    attributes: ["ingredient_name", "quantity", "unit", "note", "sort_order"],
+                    separate: true,
+                    order: [["sort_order", "ASC"], ["id", "ASC"]],
+                    include: [
+                        {
+                            model: Product,
+                            as: "product",
+                            attributes: ["name", "sku"]
+                        }
+                    ]
+                },
+                {
+                    model: RecipeStep,
+                    as: "steps",
+                    attributes: ["step_number", "instruction"],
+                    separate: true,
+                    order: [["step_number", "ASC"], ["id", "ASC"]]
+                }
+            ],
             order: [["updated_at", "DESC"]],
-            limit: 12
+            limit: 30
         }),
         Coupon.findAll({
             where: { is_active: true },
@@ -45,7 +105,11 @@ async function buildShopContext() {
         })
     ]);
 
+    const recipeContextLines = recipes.map((item) => formatRecipeForAi(item));
+
     return [
+        "Chi tiết công thức có trong hệ thống:",
+        ...recipeContextLines,
         "Dữ liệu hiện có của Garden Fresh:",
         "Danh mục: " + categories.map((item) => item.name).filter(Boolean).join(", "),
         "Sản phẩm:",
