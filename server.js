@@ -169,6 +169,59 @@ async function ensureRuntimeSchema() {
         .map(normalizeTableName)
         .map((tableName) => String(tableName).toLowerCase());
 
+    if (!existingTables.includes("media_assets")) {
+        await queryInterface.createTable("media_assets", {
+            id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                autoIncrement: true,
+                primaryKey: true,
+                allowNull: false
+            },
+            folder: {
+                type: DataTypes.STRING(80),
+                allowNull: false,
+                defaultValue: "general"
+            },
+            original_name: {
+                type: DataTypes.STRING(255),
+                allowNull: true
+            },
+            file_name: {
+                type: DataTypes.STRING(255),
+                allowNull: false
+            },
+            mime_type: {
+                type: DataTypes.STRING(120),
+                allowNull: false
+            },
+            size: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                defaultValue: 0
+            },
+            data: {
+                type: DataTypes.BLOB("long"),
+                allowNull: false
+            },
+            created_at: {
+                type: DataTypes.DATE,
+                allowNull: false,
+                defaultValue: sequelize.literal("CURRENT_TIMESTAMP")
+            },
+            updated_at: {
+                type: DataTypes.DATE,
+                allowNull: false,
+                defaultValue: sequelize.literal("CURRENT_TIMESTAMP")
+            }
+        });
+        await queryInterface.addIndex("media_assets", ["folder"], {
+            name: "media_assets_folder_idx"
+        });
+        await queryInterface.addIndex("media_assets", ["created_at"], {
+            name: "media_assets_created_at_idx"
+        });
+    }
+
     if (existingTables.includes("categories")) {
         await queryInterface.changeColumn("categories", "image_url", {
             type: DataTypes.TEXT("medium"),

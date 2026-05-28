@@ -84,6 +84,23 @@ const Notification = sequelize.define("Notification", {
     ]
 });
 
+const MediaAsset = sequelize.define("MediaAsset", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    folder: { type: DataTypes.STRING(80), allowNull: false, defaultValue: "general" },
+    original_name: { type: DataTypes.STRING(255) },
+    file_name: { type: DataTypes.STRING(255), allowNull: false },
+    mime_type: { type: DataTypes.STRING(120), allowNull: false },
+    size: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+    data: { type: DataTypes.BLOB("long"), allowNull: false }
+}, {
+    ...commonOptions,
+    tableName: "media_assets",
+    indexes: [
+        { fields: ["folder"] },
+        { fields: ["created_at"] }
+    ]
+});
+
 const Category = sequelize.define("Category", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     parent_id: { type: DataTypes.INTEGER.UNSIGNED },
@@ -127,7 +144,7 @@ const Product = sequelize.define("Product", {
     unit: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "đơn vị" },
     production_date: { type: DataTypes.DATEONLY },
     expiration_date: { type: DataTypes.DATEONLY },
-    thumbnail_url: { type: DataTypes.STRING(255) },
+    thumbnail_url: { type: DataTypes.TEXT },
     is_featured: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     is_published: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     status: {
@@ -686,6 +703,7 @@ module.exports = {
     UserAddress,
     RefreshToken,
     Notification,
+    MediaAsset,
     Category,
     RecipeCategory,
     Product,

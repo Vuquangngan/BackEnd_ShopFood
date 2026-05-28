@@ -6,6 +6,7 @@ const uploadController = require("../controllers/uploadController");
 
 const router = express.Router();
 
+router.get("/assets/:id", uploadController.getAsset);
 router.post("/images", authenticate, uploadImageFields, uploadController.uploadImages);
 
 module.exports = router;

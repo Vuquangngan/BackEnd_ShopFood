@@ -1,5 +1,6 @@
 const { addVietnameseAliases } = require("../utils/vietnameseLabels");
 const { withCommonResponseAliases } = require("../utils/responseHelpers");
+const { MediaAsset } = require("../models");
 
 function collectFiles(req) {
     const fileGroups = req.files || {};
@@ -10,9 +11,9 @@ function collectFiles(req) {
     ];
 }
 
-function toPublicUrl(req, file) {
+function toPublicUrl(req, file, asset) {
     const folder = req.uploadFolder || "general";
-    const relativeUrl = `/uploads/${folder}/${file.filename}`;
+    const relativeUrl = asset?.id ? `/api/uploads/assets/${asset.id}` : `/uploads/${folder}/${file.filename}`;
 
     return {
         url: `${req.protocol}://${req.get("host")}${relativeUrl}`,
@@ -21,12 +22,22 @@ function toPublicUrl(req, file) {
     };
 }
 
-function localizeUploadedFile(req, file) {
-    const publicUrl = toPublicUrl(req, file);
+async function localizeUploadedFile(req, file) {
+    const folder = req.uploadFolder || "general";
+    const asset = await MediaAsset.create({
+        folder,
+        original_name: file.originalname || "",
+        file_name: `${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname || "image"}`,
+        mime_type: file.mimetype,
+        size: file.size || file.buffer?.length || 0,
+        data: file.buffer
+    });
+    const publicUrl = toPublicUrl(req, file, asset);
 
     return addVietnameseAliases({
+        id: asset.id,
         original_name: file.originalname,
-        file_name: file.filename,
+        file_name: asset.file_name,
         mime_type: file.mimetype,
         size: file.size,
         folder: publicUrl.folder,
@@ -43,7 +54,7 @@ function localizeUploadedFile(req, file) {
     });
 }
 
-exports.uploadImages = (req, res) => {
+exports.uploadImages = async (req, res) => {
     const files = collectFiles(req);
 
     if (!files.length) {
@@ -52,7 +63,7 @@ exports.uploadImages = (req, res) => {
         }));
     }
 
-    const uploadedFiles = files.map((file) => localizeUploadedFile(req, file));
+    const uploadedFiles = await Promise.all(files.map((file) => localizeUploadedFile(req, file)));
 
     return res.status(201).json(withCommonResponseAliases({
         message: `Tải lên thành công ${uploadedFiles.length} ảnh.`,
@@ -61,4 +72,20 @@ exports.uploadImages = (req, res) => {
         file: uploadedFiles[0],
         hinh_anh: uploadedFiles[0]
     }));
+};
+
+exports.getAsset = async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json(withCommonResponseAliases({ message: "Mã ảnh không hợp lệ." }));
+    }
+
+    const asset = await MediaAsset.findByPk(id);
+    if (!asset) {
+        return res.status(404).json(withCommonResponseAliases({ message: "Không tìm thấy ảnh." }));
+    }
+
+    res.setHeader("Content-Type", asset.mime_type);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    return res.send(asset.data);
 };

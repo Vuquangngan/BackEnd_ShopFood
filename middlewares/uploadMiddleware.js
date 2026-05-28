@@ -37,19 +37,7 @@ function getSafeExtension(file) {
     return extension || ".jpg";
 }
 
-const storage = multer.diskStorage({
-    destination(req, file, callback) {
-        try {
-            callback(null, getUploadFolder(req));
-        } catch (error) {
-            callback(error);
-        }
-    },
-    filename(req, file, callback) {
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${getSafeExtension(file)}`;
-        callback(null, uniqueName);
-    }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
     storage,
@@ -57,6 +45,7 @@ const upload = multer({
         fileSize: (Number(process.env.UPLOAD_MAX_FILE_SIZE_MB || 5) || 5) * 1024 * 1024
     },
     fileFilter(req, file, callback) {
+        req.uploadFolder = normalizeFolder(req.query.folder);
         if (!ALLOWED_IMAGE_TYPES.has(file.mimetype)) {
             const error = new Error("Chỉ chấp nhận tệp ảnh JPG, PNG, WEBP hoặc GIF.");
             error.status = 400;
