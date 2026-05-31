@@ -180,6 +180,32 @@ const ProductStoreAllocation = sequelize.define("ProductStoreAllocation", {
     ]
 });
 
+const Branch = sequelize.define("Branch", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    key: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    label: { type: DataTypes.STRING(120), allowNull: false },
+    name: { type: DataTypes.STRING(120), allowNull: false },
+    manager: { type: DataTypes.STRING(120) },
+    phone: { type: DataTypes.STRING(20) },
+    city: { type: DataTypes.STRING(120) },
+    address: { type: DataTypes.STRING(255) },
+    hours: { type: DataTypes.STRING(50) },
+    image_url: { type: DataTypes.TEXT },
+    status: {
+        type: DataTypes.ENUM("active", "paused", "closed"),
+        allowNull: false,
+        defaultValue: "active"
+    }
+}, {
+    ...commonOptions,
+    tableName: "branches",
+    indexes: [
+        { fields: ["status"] },
+        { fields: ["city"] }
+    ]
+});
+
 const ProductImage = sequelize.define("ProductImage", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
@@ -524,6 +550,85 @@ const RecipeReview = sequelize.define("RecipeReview", {
     ]
 });
 
+const StaffShiftSlot = sequelize.define("StaffShiftSlot", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    branch_id: { type: DataTypes.STRING(80), allowNull: false },
+    client_id: { type: DataTypes.STRING(80), allowNull: false },
+    name: { type: DataTypes.STRING(120), allowNull: false },
+    start_time: { type: DataTypes.STRING(10), allowNull: false },
+    end_time: { type: DataTypes.STRING(10), allowNull: false },
+    tone: {
+        type: DataTypes.ENUM("morning", "afternoon", "evening"),
+        allowNull: false,
+        defaultValue: "morning"
+    },
+    enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    applies_to_date: { type: DataTypes.DATEONLY },
+    created_by: { type: DataTypes.INTEGER.UNSIGNED }
+}, {
+    ...commonOptions,
+    tableName: "staff_shift_slots",
+    indexes: [
+        {
+            unique: true,
+            fields: ["branch_id", "client_id"]
+        },
+        { fields: ["branch_id", "enabled"] },
+        { fields: ["applies_to_date"] }
+    ]
+});
+
+const StaffShiftAssignment = sequelize.define("StaffShiftAssignment", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    branch_id: { type: DataTypes.STRING(80), allowNull: false },
+    shift_slot_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    employee_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    shift_date: { type: DataTypes.DATEONLY, allowNull: false },
+    status: {
+        type: DataTypes.ENUM("pending", "confirmed"),
+        allowNull: false,
+        defaultValue: "pending"
+    },
+    source: {
+        type: DataTypes.ENUM("self", "manager"),
+        allowNull: false,
+        defaultValue: "self"
+    },
+    registered_by: { type: DataTypes.INTEGER.UNSIGNED },
+    registered_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+    confirmed_by: { type: DataTypes.INTEGER.UNSIGNED },
+    confirmed_at: { type: DataTypes.DATE },
+    confirmation_source: { type: DataTypes.STRING(40) }
+}, {
+    ...commonOptions,
+    tableName: "staff_shift_assignments",
+    indexes: [
+        {
+            unique: true,
+            fields: ["branch_id", "shift_slot_id", "shift_date", "employee_id"]
+        },
+        { fields: ["branch_id", "shift_date"] },
+        { fields: ["employee_id", "shift_date"] },
+        { fields: ["status"] }
+    ]
+});
+
+const StaffShiftHoliday = sequelize.define("StaffShiftHoliday", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    branch_id: { type: DataTypes.STRING(80), allowNull: false },
+    holiday_date: { type: DataTypes.DATEONLY, allowNull: false },
+    note: { type: DataTypes.STRING(255) }
+}, {
+    ...commonOptions,
+    tableName: "staff_shift_holidays",
+    indexes: [
+        {
+            unique: true,
+            fields: ["branch_id", "holiday_date"]
+        }
+    ]
+});
+
 const PaymentTransaction = sequelize.define("PaymentTransaction", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     order_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
@@ -687,6 +792,17 @@ RecipeReview.belongsTo(User, { foreignKey: "user_id", as: "user", onDelete: "CAS
 Recipe.hasMany(RecipeReview, { foreignKey: "recipe_id", as: "reviews", onDelete: "CASCADE" });
 RecipeReview.belongsTo(Recipe, { foreignKey: "recipe_id", as: "recipe", onDelete: "CASCADE" });
 
+User.hasMany(StaffShiftSlot, { foreignKey: "created_by", as: "created_shift_slots", onDelete: "SET NULL" });
+StaffShiftSlot.belongsTo(User, { foreignKey: "created_by", as: "creator", onDelete: "SET NULL" });
+StaffShiftSlot.hasMany(StaffShiftAssignment, { foreignKey: "shift_slot_id", as: "assignments", onDelete: "CASCADE" });
+StaffShiftAssignment.belongsTo(StaffShiftSlot, { foreignKey: "shift_slot_id", as: "slot", onDelete: "CASCADE" });
+User.hasMany(StaffShiftAssignment, { foreignKey: "employee_id", as: "shift_assignments", onDelete: "CASCADE" });
+StaffShiftAssignment.belongsTo(User, { foreignKey: "employee_id", as: "employee", onDelete: "CASCADE" });
+User.hasMany(StaffShiftAssignment, { foreignKey: "registered_by", as: "registered_shift_assignments", onDelete: "SET NULL" });
+StaffShiftAssignment.belongsTo(User, { foreignKey: "registered_by", as: "registrar", onDelete: "SET NULL" });
+User.hasMany(StaffShiftAssignment, { foreignKey: "confirmed_by", as: "confirmed_shift_assignments", onDelete: "SET NULL" });
+StaffShiftAssignment.belongsTo(User, { foreignKey: "confirmed_by", as: "confirmer", onDelete: "SET NULL" });
+
 User.hasMany(ChatConversation, { foreignKey: "customer_id", as: "customer_conversations", onDelete: "CASCADE" });
 ChatConversation.belongsTo(User, { foreignKey: "customer_id", as: "customer", onDelete: "CASCADE" });
 User.hasMany(ChatConversation, { foreignKey: "assigned_staff_id", as: "assigned_conversations", onDelete: "SET NULL" });
@@ -708,6 +824,7 @@ module.exports = {
     RecipeCategory,
     Product,
     ProductStoreAllocation,
+    Branch,
     ProductImage,
     ProductReview,
     Supplier,
@@ -725,6 +842,9 @@ module.exports = {
     RecipeStep,
     RecipeFavorite,
     RecipeReview,
+    StaffShiftSlot,
+    StaffShiftAssignment,
+    StaffShiftHoliday,
     ChatConversation,
     ChatMessage
 };

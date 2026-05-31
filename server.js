@@ -28,6 +28,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const branchRoutes = require("./routes/branchRoutes");
 const staffShiftRoutes = require("./routes/staffShiftRoutes");
 const emailCampaignRoutes = require("./routes/emailCampaignRoutes");
 const aiRoutes = require("./routes/aiRoutes");
@@ -86,6 +87,7 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/branches", branchRoutes);
 app.use("/api/staff-shifts", staffShiftRoutes);
 app.use("/api/email-campaigns", emailCampaignRoutes);
 app.use("/api/ai", aiRoutes);
@@ -220,6 +222,147 @@ async function ensureRuntimeSchema() {
         await queryInterface.addIndex("media_assets", ["created_at"], {
             name: "media_assets_created_at_idx"
         });
+    }
+
+    if (!existingTables.includes("staff_shift_slots")) {
+        await queryInterface.createTable("staff_shift_slots", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            branch_id: { type: DataTypes.STRING(80), allowNull: false },
+            client_id: { type: DataTypes.STRING(80), allowNull: false },
+            name: { type: DataTypes.STRING(120), allowNull: false },
+            start_time: { type: DataTypes.STRING(10), allowNull: false },
+            end_time: { type: DataTypes.STRING(10), allowNull: false },
+            tone: { type: DataTypes.ENUM("morning", "afternoon", "evening"), allowNull: false, defaultValue: "morning" },
+            enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+            applies_to_date: { type: DataTypes.DATEONLY, allowNull: true },
+            created_by: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("staff_shift_slots", ["branch_id", "client_id"], {
+            unique: true,
+            name: "staff_shift_slots_branch_client_unique"
+        });
+        await queryInterface.addIndex("staff_shift_slots", ["branch_id", "enabled"], {
+            name: "staff_shift_slots_branch_enabled_idx"
+        });
+    }
+
+    if (!existingTables.includes("staff_shift_assignments")) {
+        await queryInterface.createTable("staff_shift_assignments", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            branch_id: { type: DataTypes.STRING(80), allowNull: false },
+            shift_slot_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+            employee_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+            shift_date: { type: DataTypes.DATEONLY, allowNull: false },
+            status: { type: DataTypes.ENUM("pending", "confirmed"), allowNull: false, defaultValue: "pending" },
+            source: { type: DataTypes.ENUM("self", "manager"), allowNull: false, defaultValue: "self" },
+            registered_by: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+            registered_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            confirmed_by: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+            confirmed_at: { type: DataTypes.DATE, allowNull: true },
+            confirmation_source: { type: DataTypes.STRING(40), allowNull: true },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("staff_shift_assignments", ["branch_id", "shift_slot_id", "shift_date", "employee_id"], {
+            unique: true,
+            name: "staff_shift_assignments_unique"
+        });
+        await queryInterface.addIndex("staff_shift_assignments", ["branch_id", "shift_date"], {
+            name: "staff_shift_assignments_branch_date_idx"
+        });
+        await queryInterface.addIndex("staff_shift_assignments", ["employee_id", "shift_date"], {
+            name: "staff_shift_assignments_employee_date_idx"
+        });
+    }
+
+    if (!existingTables.includes("staff_shift_holidays")) {
+        await queryInterface.createTable("staff_shift_holidays", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            branch_id: { type: DataTypes.STRING(80), allowNull: false },
+            holiday_date: { type: DataTypes.DATEONLY, allowNull: false },
+            note: { type: DataTypes.STRING(255), allowNull: true },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("staff_shift_holidays", ["branch_id", "holiday_date"], {
+            unique: true,
+            name: "staff_shift_holidays_branch_date_unique"
+        });
+    }
+
+    if (!existingTables.includes("branches")) {
+        await queryInterface.createTable("branches", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            key: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+            code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+            label: { type: DataTypes.STRING(120), allowNull: false },
+            name: { type: DataTypes.STRING(120), allowNull: false },
+            manager: { type: DataTypes.STRING(120), allowNull: true },
+            phone: { type: DataTypes.STRING(20), allowNull: true },
+            city: { type: DataTypes.STRING(120), allowNull: true },
+            address: { type: DataTypes.STRING(255), allowNull: true },
+            hours: { type: DataTypes.STRING(50), allowNull: true },
+            image_url: { type: DataTypes.TEXT, allowNull: true },
+            status: { type: DataTypes.ENUM("active", "paused", "closed"), allowNull: false, defaultValue: "active" },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("branches", ["status"], { name: "branches_status_idx" });
+        await queryInterface.addIndex("branches", ["city"], { name: "branches_city_idx" });
+    }
+
+    const [branchCountRows] = await sequelize.query("SELECT COUNT(*) AS total FROM branches");
+    const branchCount = Number(branchCountRows?.[0]?.total || 0);
+    if (branchCount === 0) {
+        await queryInterface.bulkInsert("branches", [
+            {
+                key: "store_1",
+                code: "CN-001",
+                label: "Garden Fresh 1",
+                name: "Garden Fresh 1",
+                manager: "Trần Văn Lý",
+                phone: "0906572167",
+                city: "Hà Nội",
+                address: "113 Cầu Giấy, Quận Cầu Giấy, Hà Nội",
+                hours: "07:00 - 21:00",
+                image_url: "",
+                status: "active",
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                key: "store_2",
+                code: "CN-002",
+                label: "Garden Fresh 2",
+                name: "Garden Fresh 2",
+                manager: "Vũ Quang Ngân",
+                phone: "0916837759",
+                city: "Hà Nội",
+                address: "80 Trần Phú, Quận Hà Đông, Hà Nội",
+                hours: "06:00 - 22:00",
+                image_url: "",
+                status: "active",
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                key: "store_3",
+                code: "CN-003",
+                label: "Garden Fresh 3",
+                name: "Garden Fresh 3",
+                manager: "",
+                phone: "",
+                city: "Hà Nội",
+                address: "",
+                hours: "07:00 - 21:00",
+                image_url: "",
+                status: "active",
+                created_at: new Date(),
+                updated_at: new Date()
+            }
+        ]);
     }
 
     if (existingTables.includes("categories")) {
