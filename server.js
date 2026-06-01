@@ -29,6 +29,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const branchRoutes = require("./routes/branchRoutes");
+const branchImportRequestRoutes = require("./routes/branchImportRequestRoutes");
 const staffShiftRoutes = require("./routes/staffShiftRoutes");
 const emailCampaignRoutes = require("./routes/emailCampaignRoutes");
 const aiRoutes = require("./routes/aiRoutes");
@@ -88,6 +89,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/branches", branchRoutes);
+app.use("/api/branch-import-requests", branchImportRequestRoutes);
 app.use("/api/staff-shifts", staffShiftRoutes);
 app.use("/api/email-campaigns", emailCampaignRoutes);
 app.use("/api/ai", aiRoutes);
@@ -363,6 +365,76 @@ async function ensureRuntimeSchema() {
                 updated_at: new Date()
             }
         ]);
+    }
+
+    if (!existingTables.includes("branch_import_requests")) {
+        await queryInterface.createTable("branch_import_requests", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+            branch_id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                references: { model: "branches", key: "id" },
+                onUpdate: "CASCADE",
+                onDelete: "CASCADE"
+            },
+            branch_key: { type: DataTypes.STRING(50), allowNull: false },
+            branch_name: { type: DataTypes.STRING(180), allowNull: false },
+            expected_date: { type: DataTypes.DATEONLY, allowNull: true },
+            note: { type: DataTypes.TEXT, allowNull: true },
+            status: {
+                type: DataTypes.ENUM("draft", "pending", "approved", "receiving", "completed", "rejected"),
+                allowNull: false,
+                defaultValue: "pending"
+            },
+            status_note: { type: DataTypes.STRING(255), allowNull: true },
+            created_by: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: true,
+                references: { model: "users", key: "id" },
+                onUpdate: "CASCADE",
+                onDelete: "SET NULL"
+            },
+            approved_at: { type: DataTypes.DATE, allowNull: true },
+            shipped_at: { type: DataTypes.DATE, allowNull: true },
+            completed_at: { type: DataTypes.DATE, allowNull: true },
+            rejected_at: { type: DataTypes.DATE, allowNull: true },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("branch_import_requests", ["branch_id"], { name: "branch_import_requests_branch_id_idx" });
+        await queryInterface.addIndex("branch_import_requests", ["branch_key"], { name: "branch_import_requests_branch_key_idx" });
+        await queryInterface.addIndex("branch_import_requests", ["status"], { name: "branch_import_requests_status_idx" });
+        await queryInterface.addIndex("branch_import_requests", ["created_at"], { name: "branch_import_requests_created_at_idx" });
+    }
+
+    if (!existingTables.includes("branch_import_request_items")) {
+        await queryInterface.createTable("branch_import_request_items", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            request_id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                references: { model: "branch_import_requests", key: "id" },
+                onUpdate: "CASCADE",
+                onDelete: "CASCADE"
+            },
+            product_id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                references: { model: "products", key: "id" },
+                onUpdate: "CASCADE",
+                onDelete: "RESTRICT"
+            },
+            name: { type: DataTypes.STRING(180), allowNull: false },
+            sku: { type: DataTypes.STRING(80), allowNull: true },
+            thumbnail_url: { type: DataTypes.TEXT, allowNull: true },
+            unit: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "đơn vị" },
+            quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 1 },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("branch_import_request_items", ["request_id"], { name: "branch_import_request_items_request_id_idx" });
+        await queryInterface.addIndex("branch_import_request_items", ["product_id"], { name: "branch_import_request_items_product_id_idx" });
     }
 
     if (existingTables.includes("categories")) {

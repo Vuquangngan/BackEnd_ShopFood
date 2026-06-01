@@ -206,6 +206,54 @@ const Branch = sequelize.define("Branch", {
     ]
 });
 
+const BranchImportRequest = sequelize.define("BranchImportRequest", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    branch_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    branch_key: { type: DataTypes.STRING(50), allowNull: false },
+    branch_name: { type: DataTypes.STRING(180), allowNull: false },
+    expected_date: { type: DataTypes.DATEONLY },
+    note: { type: DataTypes.TEXT },
+    status: {
+        type: DataTypes.ENUM("draft", "pending", "approved", "receiving", "completed", "rejected"),
+        allowNull: false,
+        defaultValue: "pending"
+    },
+    status_note: { type: DataTypes.STRING(255) },
+    created_by: { type: DataTypes.INTEGER.UNSIGNED },
+    approved_at: { type: DataTypes.DATE },
+    shipped_at: { type: DataTypes.DATE },
+    completed_at: { type: DataTypes.DATE },
+    rejected_at: { type: DataTypes.DATE }
+}, {
+    ...commonOptions,
+    tableName: "branch_import_requests",
+    indexes: [
+        { fields: ["branch_id"] },
+        { fields: ["branch_key"] },
+        { fields: ["status"] },
+        { fields: ["created_at"] }
+    ]
+});
+
+const BranchImportRequestItem = sequelize.define("BranchImportRequestItem", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    request_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    name: { type: DataTypes.STRING(180), allowNull: false },
+    sku: { type: DataTypes.STRING(80) },
+    thumbnail_url: { type: DataTypes.TEXT },
+    unit: { type: DataTypes.STRING(50), allowNull: false, defaultValue: "đơn vị" },
+    quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 1 }
+}, {
+    ...commonOptions,
+    tableName: "branch_import_request_items",
+    indexes: [
+        { fields: ["request_id"] },
+        { fields: ["product_id"] }
+    ]
+});
+
 const ProductImage = sequelize.define("ProductImage", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
@@ -726,6 +774,14 @@ Product.hasMany(ProductImage, { foreignKey: "product_id", as: "images", onDelete
 ProductImage.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "CASCADE" });
 Product.hasMany(ProductStoreAllocation, { foreignKey: "product_id", as: "store_allocations", onDelete: "CASCADE" });
 ProductStoreAllocation.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "CASCADE" });
+Branch.hasMany(BranchImportRequest, { foreignKey: "branch_id", as: "import_requests", onDelete: "CASCADE" });
+BranchImportRequest.belongsTo(Branch, { foreignKey: "branch_id", as: "branch", onDelete: "CASCADE" });
+User.hasMany(BranchImportRequest, { foreignKey: "created_by", as: "created_branch_import_requests", onDelete: "SET NULL" });
+BranchImportRequest.belongsTo(User, { foreignKey: "created_by", as: "creator", onDelete: "SET NULL" });
+BranchImportRequest.hasMany(BranchImportRequestItem, { foreignKey: "request_id", as: "items", onDelete: "CASCADE" });
+BranchImportRequestItem.belongsTo(BranchImportRequest, { foreignKey: "request_id", as: "request", onDelete: "CASCADE" });
+Product.hasMany(BranchImportRequestItem, { foreignKey: "product_id", as: "branch_import_request_items", onDelete: "RESTRICT" });
+BranchImportRequestItem.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "RESTRICT" });
 Product.hasMany(ProductReview, { foreignKey: "product_id", as: "reviews", onDelete: "CASCADE" });
 ProductReview.belongsTo(Product, { foreignKey: "product_id", as: "product", onDelete: "CASCADE" });
 User.hasMany(ProductReview, { foreignKey: "user_id", as: "product_reviews", onDelete: "CASCADE" });
@@ -825,6 +881,8 @@ module.exports = {
     Product,
     ProductStoreAllocation,
     Branch,
+    BranchImportRequest,
+    BranchImportRequestItem,
     ProductImage,
     ProductReview,
     Supplier,
