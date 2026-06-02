@@ -870,8 +870,7 @@ async function startServer() {
     try {
         await sequelize.authenticate();
         const isHostedRuntime = process.env.NODE_ENV === "production" || Boolean(process.env.RENDER);
-        const shouldSyncOnStart = process.env.DB_SYNC_ON_START === "true"
-            || (!isHostedRuntime && process.env.DB_SYNC_ON_START !== "false");
+        const shouldSyncOnStart = !isHostedRuntime && process.env.DB_SYNC_ON_START !== "false";
         if (shouldSyncOnStart) {
             await sequelize.sync({ alter: true });
         }
