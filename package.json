@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "start:local": "node scripts/startLocal.js",
+    "start:server": "node scripts/startServer.js",
     "db:init": "node scripts/initDb.js",
     "db:reset": "node scripts/resetDb.js",
     "db:fresh": "node scripts/resetDb.js && node scripts/seedDb.js",
