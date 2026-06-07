@@ -6,17 +6,10 @@ const {
     RecipeCategory,
     RecipeFavorite,
     RecipeIngredient,
-    RecipeReview,
     RecipeStep,
     User
 } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
-
-function createRecipeError(message, statusCode = 400) {
-    const error = new Error(message);
-    error.statusCode = statusCode;
-    return error;
-}
 
 const RECIPE_FIELDS = [
     "author_id",
@@ -152,23 +145,6 @@ function localizeStep(step) {
     });
 }
 
-function localizeReview(review) {
-    if (!review) return null;
-
-    const user = localizeUser(review.user);
-
-    return {
-        ...addVietnameseAliases(review, {
-            rating: "diem_danh_gia",
-            comment: "binh_luan",
-            username: "ten_nguoi_dung",
-            user: "nguoi_dung"
-        }),
-        user,
-        nguoi_dung: user
-    };
-}
-
 function toPlainRecipe(recipeInstance) {
     if (!recipeInstance) return null;
 
@@ -177,17 +153,12 @@ function toPlainRecipe(recipeInstance) {
     return {
         ...recipe,
         favorite_count: Number(recipe.favorite_count || 0),
-        review_count: Number(recipe.review_count || 0),
         author_name: recipe.author ? recipe.author.username : null,
         recipe_category_name: recipe.recipe_category ? recipe.recipe_category.name : null,
         ingredients: (recipe.ingredients || []).map((ingredient) => ({
             ...ingredient,
             product_name: ingredient.product ? ingredient.product.name : null,
             product_slug: ingredient.product ? ingredient.product.slug : null
-        })),
-        reviews: (recipe.reviews || []).map((review) => ({
-            ...review,
-            username: review.user ? review.user.username : null
         }))
     };
 }
@@ -204,7 +175,6 @@ function localizeRecipe(recipe) {
     const recipeCategory = localizeRecipeCategory(localized.recipe_category);
     const ingredients = (localized.ingredients || []).map(localizeIngredient);
     const steps = (localized.steps || []).map(localizeStep);
-    const reviews = (localized.reviews || []).map(localizeReview);
 
     return {
         ...addVietnameseAliases(localized, {
@@ -223,14 +193,12 @@ function localizeRecipe(recipe) {
             status: "trang_thai_ma",
             status_label: "trang_thai_hien_thi",
             favorite_count: "so_luot_yeu_thich",
-            review_count: "so_luot_danh_gia",
             author_name: "ten_tac_gia",
             recipe_category_name: "ten_danh_muc_cong_thuc",
             author: "tac_gia",
             recipe_category: "danh_muc_cong_thuc",
             ingredients: "danh_sach_nguyen_lieu",
             steps: "cac_buoc_thuc_hien",
-            reviews: "danh_sach_danh_gia",
             created_at: "ngay_tao",
             updated_at: "ngay_cap_nhat"
         }),
@@ -241,15 +209,12 @@ function localizeRecipe(recipe) {
         ingredients,
         danh_sach_nguyen_lieu: ingredients,
         steps,
-        cac_buoc_thuc_hien: steps,
-        reviews,
-        danh_sach_danh_gia: reviews
+        cac_buoc_thuc_hien: steps
     };
 }
 
 const recipeCountAttributes = [
-    [literal(`(SELECT COUNT(*) FROM recipe_favorites rf WHERE rf.recipe_id = ${RECIPE_TABLE_ALIAS}.id)`), "favorite_count"],
-    [literal(`(SELECT COUNT(*) FROM recipe_reviews rr WHERE rr.recipe_id = ${RECIPE_TABLE_ALIAS}.id)`), "review_count"]
+    [literal(`(SELECT COUNT(*) FROM recipe_favorites rf WHERE rf.recipe_id = ${RECIPE_TABLE_ALIAS}.id)`), "favorite_count"]
 ];
 
 const RecipeModel = {
@@ -332,19 +297,6 @@ const RecipeModel = {
                     as: "steps",
                     separate: true,
                     order: [["step_number", "ASC"], ["id", "ASC"]]
-                },
-                {
-                    model: RecipeReview,
-                    as: "reviews",
-                    separate: true,
-                    order: [["created_at", "DESC"]],
-                    include: [
-                        {
-                            model: User,
-                            as: "user",
-                            attributes: ["id", "username"]
-                        }
-                    ]
                 }
             ]
         });
@@ -503,50 +455,6 @@ const RecipeModel = {
             is_favorite: isFavorite,
             da_yeu_thich: isFavorite
         };
-    },
-
-    async upsertReview(recipeId, userId, data) {
-        const recipe = await Recipe.findByPk(recipeId);
-        if (!recipe) return null;
-
-        const rating = Number(data.rating);
-        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-            throw createRecipeError("Điểm đánh giá phải là số nguyên từ 1 đến 5.");
-        }
-
-        const existing = await RecipeReview.findOne({
-            where: {
-                recipe_id: recipeId,
-                user_id: userId
-            }
-        });
-
-        if (existing) {
-            await existing.update({
-                rating,
-                comment: data.comment || null
-            });
-        } else {
-            await RecipeReview.create({
-                recipe_id: recipeId,
-                user_id: userId,
-                rating,
-                comment: data.comment || null
-            });
-        }
-
-        return this.getById(recipeId);
-    },
-
-    async removeReview(recipeId, userId) {
-        const deletedRows = await RecipeReview.destroy({
-            where: {
-                recipe_id: recipeId,
-                user_id: userId
-            }
-        });
-
-        return deletedRows > 0;
     },
 
     async remove(id) {

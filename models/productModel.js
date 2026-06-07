@@ -1,5 +1,5 @@
 ﻿const { Op, literal } = require("sequelize");
-const { sequelize, Category, Product, ProductImage, ProductReview, ProductStoreAllocation, User } = require("./index");
+const { sequelize, Category, Product, ProductImage, ProductStoreAllocation } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
 
 const PRODUCT_FIELDS = [
@@ -25,8 +25,6 @@ const PRODUCT_FIELDS = [
 ];
 
 const PRODUCT_TABLE_ALIAS = "\"Product\"";
-const AVERAGE_RATING_SQL = `(SELECT COALESCE(AVG(pr.rating), 0) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`;
-const REVIEW_COUNT_SQL = `(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`;
 const CURRENT_PRICE_SQL = `COALESCE(${PRODUCT_TABLE_ALIAS}.sale_price, ${PRODUCT_TABLE_ALIAS}.price)`;
 const LATEST_SUPPLIER_NAME_SQL = `(
     SELECT s.name
@@ -200,45 +198,9 @@ function localizeImage(image) {
     });
 }
 
-function localizeReviewUser(user) {
-    if (!user) return null;
-
-    return addVietnameseAliases({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        avatar_url: user.avatar_url || null,
-        role: user.role
-    }, {
-        username: "ten_nguoi_dung",
-        avatar_url: "anh_dai_dien",
-        role: "vai_tro"
-    });
-}
-
-function localizeReview(review) {
-    if (!review) return null;
-
-    return {
-        ...addVietnameseAliases(review, {
-            user_id: "ma_nguoi_danh_gia",
-            product_id: "ma_san_pham",
-            rating: "so_sao",
-            comment: "noi_dung_danh_gia",
-            user: "nguoi_danh_gia",
-            created_at: "ngay_tao",
-            updated_at: "ngay_cap_nhat"
-        }),
-        user: localizeReviewUser(review.user),
-        nguoi_danh_gia: localizeReviewUser(review.user)
-    };
-}
-
 function buildProductAttributes() {
     return {
         include: [
-            [literal(AVERAGE_RATING_SQL), "average_rating"],
-            [literal(REVIEW_COUNT_SQL), "review_count"],
             [literal(CURRENT_PRICE_SQL), "current_price"],
             [literal(LATEST_SUPPLIER_NAME_SQL), "supplier_name"]
         ]
@@ -410,10 +372,7 @@ function toPlainProduct(productInstance) {
         unit: saleUnit,
         category_name: product.category ? product.category.name : null,
         images: product.images || [],
-        reviews: product.reviews || [],
         store_allocations: storeAllocations,
-        average_rating: Number(product.average_rating || 0),
-        review_count: Number(product.review_count || 0),
         current_price: Number(product.current_price || product.sale_price || product.price || 0),
         available_sale_quantity: availableSaleQuantity,
         is_published: effectivePublished,
@@ -430,7 +389,6 @@ function localizeProduct(product) {
 
     const images = (localized.images || []).map(localizeImage);
     const category = localizeCategory(localized.category);
-    const reviews = (localized.reviews || []).map(localizeReview);
     const storeAllocations = (localized.store_allocations || []).map(localizeStoreAllocation);
 
     return {
@@ -460,12 +418,9 @@ function localizeProduct(product) {
             status_label: "trang_thai_hien_thi",
             category_name: "ten_danh_muc",
             supplier_name: "ten_nha_cung_cap",
-            average_rating: "diem_danh_gia_trung_binh",
-            review_count: "tong_so_danh_gia",
             store_allocations: "phan_bo_cua_hang",
             category: "danh_muc",
             images: "danh_sach_hinh_anh",
-            reviews: "danh_sach_danh_gia",
             created_at: "ngay_tao",
             updated_at: "ngay_cap_nhat"
         }),
@@ -473,8 +428,6 @@ function localizeProduct(product) {
         danh_muc: category,
         images,
         danh_sach_hinh_anh: images,
-        reviews,
-        danh_sach_danh_gia: reviews,
         store_allocations: storeAllocations,
         phan_bo_cua_hang: storeAllocations
     };
@@ -490,29 +443,11 @@ function buildSortOrder(sortBy) {
         return [["name", "ASC"]];
     case "name_desc":
         return [["name", "DESC"]];
-    case "rating_desc":
-        return [[literal(AVERAGE_RATING_SQL), "DESC"], [literal(REVIEW_COUNT_SQL), "DESC"], ["created_at", "DESC"]];
     case "oldest":
         return [["created_at", "ASC"]];
     default:
         return [["created_at", "DESC"]];
     }
-}
-
-async function getRatingSummary(productId) {
-    const summary = await Product.findByPk(productId, {
-        attributes: buildProductAttributes()
-    });
-
-    if (!summary) return null;
-
-    const plain = toPlainProduct(summary);
-    return {
-        average_rating: plain.average_rating,
-        review_count: plain.review_count,
-        diem_danh_gia_trung_binh: plain.average_rating,
-        tong_so_danh_gia: plain.review_count
-    };
 }
 
 const ProductModel = {
@@ -659,20 +594,6 @@ const ProductModel = {
                     as: "store_allocations",
                     separate: true,
                     order: [["store_key", "ASC"], ["id", "ASC"]]
-                },
-                {
-                    model: ProductReview,
-                    as: "reviews",
-                    include: [
-                        {
-                            model: User,
-                            as: "user",
-                            attributes: ["id", "username", "email", "avatar_url", "role"]
-                        }
-                    ],
-                    separate: true,
-                    limit: 5,
-                    order: [["created_at", "DESC"]]
                 }
             ]
         });
@@ -685,96 +606,6 @@ const ProductModel = {
         }
 
         return localizeProduct(plain);
-    },
-
-    async getReviews(productId, filters = {}) {
-        const product = await Product.findByPk(productId);
-        if (!product) return null;
-
-        const page = Math.max(Number(filters.page) || 1, 1);
-        const limit = Math.min(Math.max(Number(filters.limit) || 10, 1), 100);
-        const offset = (page - 1) * limit;
-
-        const { rows, count } = await ProductReview.findAndCountAll({
-            where: { product_id: productId },
-            include: [
-                {
-                    model: User,
-                    as: "user",
-                    attributes: ["id", "username", "email", "avatar_url", "role"]
-                }
-            ],
-            order: [["created_at", "DESC"]],
-            limit,
-            offset
-        });
-
-        const items = rows.map((review) => localizeReview(toPlain(review)));
-
-        return {
-            product_id: productId,
-            ma_san_pham: productId,
-            items,
-            danh_sach_danh_gia: items,
-            summary: await getRatingSummary(productId),
-            pagination: addVietnameseAliases({
-                page,
-                limit,
-                total: count,
-                total_pages: Math.max(Math.ceil(count / limit), 1)
-            }, {
-                total_pages: "tong_so_trang"
-            })
-        };
-    },
-
-    async upsertReview(productId, userId, data) {
-        const product = await Product.findByPk(productId);
-        if (!product) return null;
-
-        const rating = Number(data.rating);
-        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-            const error = new Error("Số sao đánh giá phải nằm trong khoảng từ 1 đến 5.");
-            error.statusCode = 400;
-            throw error;
-        }
-
-        let review = await ProductReview.findOne({
-            where: {
-                product_id: productId,
-                user_id: userId
-            }
-        });
-
-        if (review) {
-            await review.update({
-                rating,
-                comment: data.comment ? String(data.comment).trim() : null
-            });
-        } else {
-            review = await ProductReview.create({
-                product_id: productId,
-                user_id: userId,
-                rating,
-                comment: data.comment ? String(data.comment).trim() : null
-            });
-        }
-
-        const detailedReview = await ProductReview.findByPk(review.id, {
-            include: [
-                {
-                    model: User,
-                    as: "user",
-                    attributes: ["id", "username", "email", "avatar_url", "role"]
-                }
-            ]
-        });
-
-        return {
-            review: localizeReview(toPlain(detailedReview)),
-            danh_gia: localizeReview(toPlain(detailedReview)),
-            summary: await getRatingSummary(productId)
-        };
     },
 
     async create(data) {

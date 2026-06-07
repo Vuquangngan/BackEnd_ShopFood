@@ -127,51 +127,6 @@ exports.toggleFavorite = async (req, res) => {
     }
 };
 
-exports.upsertReview = async (req, res) => {
-    try {
-        const id = parseId(req.params.id);
-        if (!id) {
-            return res.status(400).json(withCommonResponseAliases({
-                message: "Mã công thức không hợp lệ."
-            }));
-        }
-
-        const recipe = await Recipe.upsertReview(id, req.user.id, req.body);
-        if (!recipe) {
-            return res.status(404).json(withCommonResponseAliases({
-                message: "Không tìm thấy công thức."
-            }));
-        }
-
-        return res.json(recipe);
-    } catch (error) {
-        return handleError(res, error);
-    }
-};
-
-exports.removeReview = async (req, res) => {
-    try {
-        const id = parseId(req.params.id);
-        if (!id) {
-            return res.status(400).json(withCommonResponseAliases({
-                message: "Mã công thức không hợp lệ."
-            }));
-        }
-
-        const deleted = await Recipe.removeReview(id, req.user.id);
-        if (!deleted) {
-            return res.status(404).json(withCommonResponseAliases({
-                message: "Không tìm thấy đánh giá của bạn cho công thức này."
-            }));
-        }
-
-        return res.json(withCommonResponseAliases({
-            message: "Xóa đánh giá thành công."
-        }));
-    } catch (error) {
-        return handleError(res, error);
-    }
-};
 
 exports.remove = async (req, res) => {
     try {
@@ -196,3 +151,4 @@ exports.remove = async (req, res) => {
         return handleError(res, error);
     }
 };
+

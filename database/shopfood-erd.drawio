@@ -22,9 +22,6 @@
         <mxCell id="recipe_favorites" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipe_favorites&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;FK: recipe_id -&amp;gt; recipes.id" vertex="1">
           <mxGeometry height="130" width="260" x="40" y="1180" as="geometry" />
         </mxCell>
-        <mxCell id="recipe_reviews" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;recipe_reviews&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: user_id -&amp;gt; users.id&lt;br/&gt;FK: recipe_id -&amp;gt; recipes.id&lt;br/&gt;rating&lt;br/&gt;comment" vertex="1">
-          <mxGeometry height="160" width="260" x="40" y="1340" as="geometry" />
-        </mxCell>
         <mxCell id="categories" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=8;fontSize=12;" value="&lt;b&gt;categories&lt;/b&gt;&lt;br/&gt;PK: id&lt;br/&gt;FK: parent_id -&amp;gt; categories.id&lt;br/&gt;name&lt;br/&gt;slug&lt;br/&gt;description&lt;br/&gt;image_url&lt;br/&gt;is_active" vertex="1">
           <mxGeometry height="190" width="240" x="360" y="140" as="geometry" />
         </mxCell>
@@ -67,9 +64,6 @@
         <mxCell id="edge_recipe_favorites_users" edge="1" parent="1" source="recipe_favorites" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge_recipe_reviews_users" edge="1" parent="1" source="recipe_reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="users" value="user_id">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
         <mxCell id="edge_categories_parent" edge="1" parent="1" source="categories" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;loopDirection=180;" target="categories" value="parent_id">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="650" y="70" as="targetPoint" />
@@ -106,9 +100,6 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="edge_recipe_favorites_recipes" edge="1" parent="1" source="recipe_favorites" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="recipes" value="recipe_id">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="edge_recipe_reviews_recipes" edge="1" parent="1" source="recipe_reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;endArrow=classic;endFill=1;" target="recipes" value="recipe_id">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

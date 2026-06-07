@@ -5,8 +5,8 @@ const {
     User,
     Category,
     Product,
+    ProductImage,
     ProductStoreAllocation,
-    ProductReview,
     Supplier,
     InventoryDocument,
     InventoryDocumentItem,
@@ -40,51 +40,69 @@ const users = [
 ];
 
 const categories = [
-    { name: "Thit heo", slug: "thit-heo", description: "Thit heo tuoi cho bua an gia dinh.", image_url: "/uploads/categories/danhmuc_thitheo.png" },
-    { name: "Thit bo", slug: "thit-bo", description: "Thit bo tuoi va cac phan bo pho bien.", image_url: "/uploads/categories/danhmuc_thibo.png" },
-    { name: "Thit ga", slug: "thit-ga", description: "Ga tuoi, ga lam san va cac phan thit ga.", image_url: "/uploads/categories/danhmuc_thitga.png" },
-    { name: "Hai san", slug: "hai-san", description: "Hai san tuoi song va dong lanh.", image_url: "/uploads/categories/danhmuc_haisan.png" },
-    { name: "Rau la", slug: "rau-la", description: "Rau la xanh tuoi cho mon luoc, xao va salad.", image_url: "/uploads/categories/danhmuc_raula.png" },
-    { name: "Rau cu", slug: "rau-cu", description: "Rau cu tuoi, de bao quan va che bien.", image_url: "/uploads/categories/danhmuc_raucu.png" },
-    { name: "Trai cay", slug: "trai-cay", description: "Trai cay tuoi theo mua.", image_url: "/uploads/categories/danhmuc_traicay.png" },
-    { name: "Do kho", slug: "do-kho", description: "Do kho, gia vi va thuc pham tien loi.", image_url: "/uploads/categories/danhmuc_mitom.png" },
-    { name: "Sua va trung", slug: "sua-va-trung", description: "Sua, trung va san pham dinh duong.", image_url: "/uploads/categories/danhmuc_sua.png" }
+    { name: "Thịt heo", slug: "thit-heo", description: "Thịt heo tươi cho bữa ăn gia đình.", image_url: "/uploads/categories/danhmuc_thiheo.png" },
+    { name: "Thịt bò", slug: "thit-bo", description: "Thịt bò tươi và các phần bò phổ biến.", image_url: "/uploads/categories/danhmuc_thibo.png" },
+    { name: "Thịt gà", slug: "thit-ga", description: "Gà tươi, gà làm sẵn và các phần thịt gà.", image_url: "/uploads/categories/danhmuc_thitga.png" },
+    { name: "Hải sản", slug: "hai-san", description: "Hải sản tươi sống và đông lạnh.", image_url: "/uploads/categories/danhmuc_haisan.png" },
+    { name: "Rau lá", slug: "rau-la", description: "Rau lá xanh tươi cho món luộc, xào và salad.", image_url: "/uploads/categories/danhmuc_raula.png" },
+    { name: "Rau củ", slug: "rau-cu", description: "Rau củ tươi, dễ bảo quản và chế biến.", image_url: "/uploads/categories/danhmuc_raucu.png" },
+    { name: "Trái cây", slug: "trai-cay", description: "Trái cây tươi theo mùa.", image_url: "/uploads/categories/danhmuc_traicay.png" },
+    { name: "Đồ khô", slug: "do-kho", description: "Đồ khô, gia vị và thực phẩm tiện lợi.", image_url: "/uploads/categories/danhmuc_mitom.png" },
+    { name: "Sữa và trứng", slug: "sua-va-trung", description: "Sữa, trứng và sản phẩm dinh dưỡng.", image_url: "/uploads/categories/danhmuc_sua.png" }
 ];
 
 const products = [
-    ["thit-heo", "Thit ba chi heo", "thit-ba-chi-heo", "SKU-HEO-001", 125000, 115000, 48, "kg"],
-    ["thit-heo", "Suon non heo", "suon-non-heo", "SKU-HEO-002", 145000, null, 35, "kg"],
-    ["thit-heo", "Chan gio heo", "chan-gio-heo", "SKU-HEO-003", 98000, 89000, 22, "kg"],
-    ["thit-bo", "Thit bo uc", "thit-bo-uc", "SKU-BO-001", 185000, 169000, 28, "kg"],
-    ["thit-bo", "Bap bo tuoi", "bap-bo-tuoi", "SKU-BO-002", 210000, null, 18, "kg"],
-    ["thit-bo", "Bo xay", "bo-xay", "SKU-BO-003", 165000, 149000, 25, "kg"],
-    ["thit-ga", "Uc ga phi le", "uc-ga-phi-le", "SKU-GA-001", 82000, 76000, 55, "kg"],
-    ["thit-ga", "Dui ga goc tu", "dui-ga-goc-tu", "SKU-GA-002", 78000, null, 42, "kg"],
-    ["thit-ga", "Trung ga hop 10 qua", "trung-ga-hop-10-qua", "SKU-TRUNG-001", 35000, 32000, 120, "hop"],
-    ["hai-san", "Ca hoi phi le", "ca-hoi-phi-le", "SKU-HS-001", 320000, 299000, 16, "kg"],
-    ["hai-san", "Tom su tuoi", "tom-su-tuoi", "SKU-HS-002", 260000, 239000, 20, "kg"],
-    ["hai-san", "Muc ong", "muc-ong", "SKU-HS-003", 210000, null, 14, "kg"],
-    ["rau-la", "Rau cai xanh", "rau-cai-xanh", "SKU-RAU-001", 14000, null, 90, "bo"],
-    ["rau-la", "Xa lach thuy canh", "xa-lach-thuy-canh", "SKU-RAU-002", 18000, 15000, 75, "bo"],
-    ["rau-la", "Hanh la", "hanh-la", "SKU-RAU-003", 7000, null, 110, "bo"],
-    ["rau-cu", "Ca rot Da Lat", "ca-rot-da-lat", "SKU-CU-001", 24000, 21000, 95, "kg"],
-    ["rau-cu", "Khoai tay", "khoai-tay", "SKU-CU-002", 26000, null, 88, "kg"],
-    ["rau-cu", "Toi Ly Son", "toi-ly-son", "SKU-CU-003", 65000, 59000, 45, "kg"],
-    ["trai-cay", "Tao Envy", "tao-envy", "SKU-TC-001", 125000, 109000, 60, "kg"],
-    ["trai-cay", "Cam sanh", "cam-sanh", "SKU-TC-002", 42000, null, 80, "kg"],
-    ["trai-cay", "Chuoi cau", "chuoi-cau", "SKU-TC-003", 28000, 25000, 100, "kg"],
-    ["do-kho", "Gao ST25", "gao-st25", "SKU-DK-001", 39000, 36000, 180, "kg"],
-    ["do-kho", "Nuoc mam truyen thong", "nuoc-mam-truyen-thong", "SKU-DK-002", 48000, null, 75, "chai"],
-    ["do-kho", "Dau an huong duong", "dau-an-huong-duong", "SKU-DK-003", 62000, 58000, 65, "chai"],
-    ["sua-va-trung", "Sua tuoi khong duong", "sua-tuoi-khong-duong", "SKU-SUA-001", 34000, null, 95, "hop"],
-    ["sua-va-trung", "Sua chua Hy Lap", "sua-chua-hy-lap", "SKU-SUA-002", 29000, 26000, 70, "hop"]
-].map(([category_slug, name, slug, sku, price, sale_price, stock_quantity, unit]) => ({
+    ["thit-heo", "Ba chỉ heo", "ba-chi-heo", "SKU-HEO-001", 125000, 115000, 48, "kg", "/uploads/products/sp_thitheo_sp_bachiheo.png"],
+    ["thit-heo", "Chân giò heo", "chan-gio-heo", "SKU-HEO-002", 98000, 89000, 22, "kg", "/uploads/products/sp_thitheo_sp_changioheo.png"],
+    ["thit-heo", "Thịt tai heo", "thit-tai-heo", "SKU-HEO-003", 115000, null, 30, "kg", "/uploads/products/sp_thitheo_sp_thittaiheo.png"],
+    ["thit-heo", "Thịt thăn heo", "thit-than-heo", "SKU-HEO-004", 135000, 125000, 36, "kg", "/uploads/products/sp_thitheo_sp_thitthanheo.png"],
+    ["thit-bo", "Ba chỉ bò", "ba-chi-bo", "SKU-BO-001", 220000, 200000, 18, "kg", "/uploads/products/sp_thitbo_sp_bachibo.png"],
+    ["thit-bo", "Thịt mông bò", "thit-mong-bo", "SKU-BO-002", 195000, null, 24, "kg", "/uploads/products/sp_thitbo_sp_thimongbo.png"],
+    ["thit-bo", "Thịt vai bò", "thit-vai-bo", "SKU-BO-003", 185000, 169000, 28, "kg", "/uploads/products/sp_thitbo_sp_thitvaibo.png"],
+    ["thit-ga", "Cánh gà", "canh-ga", "SKU-GA-001", 85000, 79000, 45, "kg", "/uploads/products/sp_thiga_sp_canhga.png"],
+    ["thit-ga", "Cánh giữa gà", "canh-giua-ga", "SKU-GA-002", 98000, null, 40, "kg", "/uploads/products/sp_thiga_sp_canhgiuaga.png"],
+    ["thit-ga", "Đùi gà", "dui-ga", "SKU-GA-003", 78000, null, 42, "kg", "/uploads/products/sp_thiga_sp_duiga.png"],
+    ["thit-ga", "Gà nguyên con", "ga-nguyen-con", "SKU-GA-004", 95000, 88000, 35, "kg", "/uploads/products/sp_thiga_sp_ganguyencon.png"],
+    ["thit-ga", "Má đùi gà", "ma-dui-ga", "SKU-GA-005", 72000, null, 55, "kg", "/uploads/products/sp_thiga_sp_maduiga.png"],
+    ["thit-ga", "Ức gà", "uc-ga", "SKU-GA-006", 82000, 76000, 55, "kg", "/uploads/products/sp_thiga_sp_ucga.png"],
+    ["hai-san", "Bạch tuộc", "bach-tuoc", "SKU-HS-001", 240000, 220000, 18, "kg", "/uploads/products/sp_haisan_sp_bachtuoc.png"],
+    ["hai-san", "Mực nang Phan Thiết", "muc-nang-phan-thiet", "SKU-HS-002", 320000, 299000, 16, "kg", "/uploads/products/sp_haisan_sp_mucnangPhanThiet.png"],
+    ["hai-san", "Mực ống", "muc-ong", "SKU-HS-003", 210000, null, 14, "kg", "/uploads/products/sp_haisan_sp_mucong.png"],
+    ["hai-san", "Tôm bóc vỏ", "tom-boc-vo", "SKU-HS-004", 280000, 259000, 20, "kg", "/uploads/products/sp_haisan_sp_tombocvo.png"],
+    ["hai-san", "Tôm sú", "tom-su", "SKU-HS-005", 260000, 239000, 20, "kg", "/uploads/products/sp_haisan_sp_tomsu.png"],
+    ["rau-cu", "Bí đao", "bi-dao", "SKU-CU-001", 18000, null, 80, "kg", "/uploads/products/sp_raucu_sp_bidao.png"],
+    ["rau-cu", "Bí đỏ", "bi-do", "SKU-CU-002", 22000, 19000, 75, "kg", "/uploads/products/sp_raucu_sp_bido.png"],
+    ["rau-cu", "Cà chua", "ca-chua", "SKU-CU-003", 25000, null, 90, "kg", "/uploads/products/sp_raucu_sp_cachua.png"],
+    ["rau-cu", "Khoai tây", "khoai-tay", "SKU-CU-004", 26000, null, 88, "kg", "/uploads/products/sp_raucu_sp_khoaitay.png"],
+    ["rau-cu", "Mướp đắng", "muop-dang", "SKU-CU-005", 24000, 21000, 65, "kg", "/uploads/products/sp_raucu_sp_muopdang.png"],
+    ["rau-cu", "Mướp hương", "muop-huong", "SKU-CU-006", 22000, null, 70, "kg", "/uploads/products/sp_raucu_sp_muophuong.png"],
+    ["rau-la", "Rau cải bắp", "rau-cai-bap", "SKU-RAU-001", 16000, null, 85, "kg", "/uploads/products/sp_raula_sp_raucaibap.png"],
+    ["rau-la", "Rau cải cay", "rau-cai-cay", "SKU-RAU-002", 14000, null, 90, "bó", "/uploads/products/sp_raula_sp_raucaicay.png"],
+    ["rau-la", "Rau cải chíp", "rau-cai-chip", "SKU-RAU-003", 18000, 15000, 75, "bó", "/uploads/products/sp_raula_sp_raucaichip.png"],
+    ["rau-la", "Rau muống", "rau-muong", "SKU-RAU-004", 12000, null, 95, "bó", "/uploads/products/sp_raula_sp_raumuong.png"],
+    ["rau-la", "Rau ngót", "rau-ngot", "SKU-RAU-005", 15000, null, 80, "bó", "/uploads/products/sp_raula_sp_raungot.png"],
+    ["trai-cay", "Bưởi", "buoi", "SKU-TC-001", 45000, null, 60, "kg", "/uploads/products/sp_traicay_sp_buoi.png"],
+    ["trai-cay", "Lê", "le", "SKU-TC-002", 65000, 59000, 55, "kg", "/uploads/products/sp_traicay_sp_le.png"],
+    ["trai-cay", "Lê đường Trung Quốc", "le-duong-trung-quoc", "SKU-TC-003", 72000, 66000, 45, "kg", "/uploads/products/sp_traicay_sp_leduongTrungQuoc.png"],
+    ["trai-cay", "Quả roi", "qua-roi", "SKU-TC-004", 38000, null, 70, "kg", "/uploads/products/sp_traicay_sp_roi.png"],
+    ["trai-cay", "Táo", "tao", "SKU-TC-005", 95000, 89000, 60, "kg", "/uploads/products/sp_traicay_sp_tao.png"],
+    ["trai-cay", "Táo Pháp", "tao-phap", "SKU-TC-006", 115000, 99000, 50, "kg", "/uploads/products/sp_traicay_tao_phap.png"],
+    ["trai-cay", "Nho Úc", "nho-uc", "SKU-TC-007", 155000, 139000, 42, "kg", "/uploads/products/sp_traicay_nho_uc.png"],
+    ["trai-cay", "Nho đen Úc", "nho-den-uc", "SKU-TC-008", 175000, 159000, 36, "kg", "/uploads/products/sp_traicay_nho_den_uc.png"],
+    ["sua-va-trung", "Sữa hạt", "sua-hat", "SKU-SUA-001", 42000, null, 90, "hộp", "/uploads/products/sp_sua_sp_suahat.png"],
+    ["sua-va-trung", "Sữa TH", "sua-th", "SKU-SUA-002", 34000, null, 95, "hộp", "/uploads/products/sp_sua_sp_suaTH.png"],
+    ["sua-va-trung", "Sữa TH thanh trùng 1L", "sua-th-thanh-trung-1l", "SKU-SUA-003", 38000, 35000, 85, "hộp", "/uploads/products/sp_sua_sp_suaTHthanhtrung1L.png"],
+    ["sua-va-trung", "Túi sữa Vinamilk", "tui-sua-vinamilk", "SKU-SUA-004", 32000, 28000, 100, "túi", "/uploads/products/sp_sua_sp_tuisuaVinamil.png"],
+    ["do-kho", "Gạo ST25", "gao-st25", "SKU-DK-001", 39000, 36000, 180, "kg", null],
+    ["do-kho", "Nước mắm truyền thống", "nuoc-mam-truyen-thong", "SKU-DK-002", 48000, null, 75, "chai", null],
+    ["do-kho", "Dầu ăn hướng dương", "dau-an-huong-duong", "SKU-DK-003", 62000, 58000, 65, "chai", null]
+].map(([category_slug, name, slug, sku, price, sale_price, stock_quantity, unit, thumbnail_url]) => ({
     category_slug,
     name,
     slug,
     sku,
-    short_description: `${name} chat luong cao, phu hop cho bua an hang ngay.`,
-    description: `${name} duoc chon loc tu nha cung cap uy tin, bao quan dung quy trinh va giao nhanh trong ngay.`,
+    short_description: `${name} chất lượng cao, phù hợp cho bữa ăn hằng ngày.`,
+    description: `${name} được chọn lọc từ nhà cung cấp uy tín, bảo quản đúng quy trình và giao nhanh trong ngày.`,
     price,
     sale_price,
     stock_quantity,
@@ -93,7 +111,8 @@ const products = [
     unit,
     stock_per_sale_unit: 1,
     status: stock_quantity <= 10 ? "out_of_stock" : "active",
-    is_published: true
+    is_published: true,
+    thumbnail_url
 }));
 
 const suppliers = [
@@ -176,8 +195,18 @@ async function main() {
                     unit: product.unit,
                     stock_per_sale_unit: product.stock_per_sale_unit,
                     status: product.status,
-                    is_published: product.is_published
+                    is_published: product.is_published,
+                    thumbnail_url: product.thumbnail_url
                 }, transaction);
+
+                await ProductImage.destroy({ where: { product_id: productsBySlug[product.slug].id }, transaction });
+                if (product.thumbnail_url) {
+                    await ProductImage.create({
+                        product_id: productsBySlug[product.slug].id,
+                        image_url: product.thumbnail_url,
+                        sort_order: 1
+                    }, { transaction });
+                }
             }
 
             const suppliersByCode = {};
@@ -340,20 +369,6 @@ async function main() {
 
                 await OrderItem.destroy({ where: { order_id: order.id }, transaction });
                 await OrderItem.bulkCreate(items.map((item) => ({ ...item, order_id: order.id })), { transaction });
-            }
-
-            for (let index = 0; index < Math.min(productList.length, 12); index += 1) {
-                const product = productList[index];
-                const customer = customers[index % customers.length];
-                await upsert(ProductReview, {
-                    product_id: product.id,
-                    user_id: customer.id
-                }, {
-                    product_id: product.id,
-                    user_id: customer.id,
-                    rating: 4 + (index % 2),
-                    comment: index % 2 === 0 ? "San pham tuoi, giao nhanh." : "Dong goi can than, chat luong tot."
-                }, transaction);
             }
 
             const recipeCategoriesBySlug = {};

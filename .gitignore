@@ -7,3 +7,7 @@ tmp-server.out.log
 
 uploads/*
 !uploads/.gitkeep
+!uploads/categories/
+!uploads/categories/*.png
+!uploads/products/
+!uploads/products/*.png

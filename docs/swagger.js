@@ -13,7 +13,7 @@ const spec = {
     ["Auth","Registration, authentication, and session management"],
     ["Users","User profile and addresses"],
     ["Categories","Product categories"],
-    ["Products","Products, search, and reviews"],
+    ["Products","Products and search"],
     ["Recipes","Recipes"],
     ["Cart","Shopping cart"],
     ["Coupons","Coupons"],
@@ -38,9 +38,7 @@ const spec = {
       AuthResponse: { type: "object", properties: { message: { type: "string" }, token: { type: "string" }, access_token: { type: "string" }, refresh_token: { type: "string" }, refresh_token_expires_at: { type: "string", format: "date-time" }, user: { $ref: S + "User" } } },
       CategoryRequest: { type: "object", required: ["name","slug"], properties: { parent_id: { type: "integer", nullable: true }, name: { type: "string" }, slug: { type: "string" }, description: { type: "string", nullable: true } } },
       ProductRequest: { type: "object", required: ["name","slug","sku","price"], properties: { category_id: { type: "integer", description: "Nhap category_id neu ban dung ID danh muc" }, category_slug: { type: "string", description: "Nhap category_slug neu ban muon tao san pham theo slug danh muc, vi du trai-cay" }, name: { type: "string" }, slug: { type: "string" }, sku: { type: "string" }, price: { type: "number" }, sale_price: { type: "number", nullable: true }, stock_quantity: { type: "integer" }, unit: { type: "string" }, production_date: { type: "string", format: "date", nullable: true, example: "2026-05-19" }, expiration_date: { type: "string", format: "date", nullable: true, example: "2026-06-19" }, is_published: { type: "boolean" }, images: { type: "array", items: { oneOf: [{ type: "string" }, { type: "object" }] } } } },
-      ProductReviewRequest: { type: "object", required: ["rating"], properties: { rating: { type: "integer", minimum: 1, maximum: 5 }, comment: { type: "string" } } },
       RecipeRequest: { type: "object", required: ["title","slug"], properties: { title: { type: "string" }, slug: { type: "string" }, description: { type: "string" }, image_url: { type: "string" }, prep_time_minutes: { type: "integer" }, cook_time_minutes: { type: "integer" }, servings: { type: "integer" }, difficulty: { type: "string" }, calories: { type: "integer" }, status: { type: "string" }, ingredients: { type: "array", items: { type: "object" } }, steps: { type: "array", items: { type: "object" } } } },
-      RecipeReviewRequest: { type: "object", required: ["rating"], properties: { rating: { type: "integer", minimum: 1, maximum: 5 }, comment: { type: "string" } } },
       CartItemRequest: { type: "object", required: ["product_id","quantity"], properties: { product_id: { type: "integer" }, quantity: { type: "integer" } } },
       CartItemUpdateRequest: { type: "object", required: ["quantity"], properties: { quantity: { type: "integer" } } },
       CouponRequest: { type: "object", required: ["code","discount_type","discount_value"], properties: { code: { type: "string" }, description: { type: "string" }, campaign_metadata: { type: "string", nullable: true, description: "JSON thiet lap chien dich, apply_scope products/categories, san pham hoac danh muc ap dung, khung gio..." }, discount_type: { type: "string" }, discount_value: { type: "number" }, min_order_value: { type: "number" }, max_discount_value: { type: "number" }, usage_limit: { type: "integer" }, is_active: { type: "boolean" } } },
@@ -101,10 +99,6 @@ p["/api/products/{id}"] = {
 };
 p["/api/products/{id}/publish"] = { patch: { tags: ["Products"], summary: "Publish product for sale", security: bearer, parameters: [pid("id","ID san pham")], responses: { 200: ok("Product published") } } };
 p["/api/products/{id}/unpublish"] = { patch: { tags: ["Products"], summary: "Hide product from sales channel", security: bearer, parameters: [pid("id","ID san pham")], responses: { 200: ok("Product unpublished") } } };
-p["/api/products/{id}/reviews"] = {
-  get: { tags: ["Products"], summary: "List product reviews", parameters: [pid("id","ID san pham")], responses: { 200: ok("Review list") } },
-  post: { tags: ["Products"], summary: "Create or update a product review", security: bearer, parameters: [pid("id","ID san pham")], requestBody: json(ref("ProductReviewRequest")), responses: { 201: ok("Review submitted successfully") } }
-};
 
 p["/api/recipes"] = {
   get: { tags: ["Recipes"], summary: "Recipe list", responses: { 200: ok("Recipe list") } },
@@ -116,10 +110,6 @@ p["/api/recipes/{id}"] = {
   delete: { tags: ["Recipes"], summary: "Delete recipe", security: bearer, parameters: [pid("id","ID cong thuc")], responses: { 200: ok("Delete recipe thanh cong") } }
 };
 p["/api/recipes/{id}/favorite"] = { post: { tags: ["Recipes"], summary: "Toggle recipe favorite", security: bearer, parameters: [pid("id","ID cong thuc")], responses: { 200: ok("Recipe favorite updated successfully") } } };
-p["/api/recipes/{id}/reviews"] = {
-  post: { tags: ["Recipes"], summary: "Create or update a recipe review", security: bearer, parameters: [pid("id","ID cong thuc")], requestBody: json(ref("RecipeReviewRequest")), responses: { 200: ok("Recipe review submitted successfully") } },
-  delete: { tags: ["Recipes"], summary: "Delete my recipe review", security: bearer, parameters: [pid("id","ID cong thuc")], responses: { 200: ok("Review deleted successfully") } }
-};
 
 p["/api/cart"] = { get: { tags: ["Cart"], summary: "Shopping cart hien tai cua toi", security: bearer, responses: { 200: ok("Shopping cart hien tai") } } };
 p["/api/cart/items"] = { post: { tags: ["Cart"], summary: "Add product to cart", security: bearer, requestBody: json(ref("CartItemRequest")), responses: { 201: ok("Product added to cart successfully") } } };

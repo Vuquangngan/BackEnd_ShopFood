@@ -1,5 +1,5 @@
 ﻿const { Op, fn, col, literal } = require("sequelize");
-const { User, Product, Order, ChatConversation, ProductReview, Notification } = require("./index");
+const { User, Product, Order, ChatConversation, Notification } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
 
 const PRODUCT_TABLE_ALIAS = "\"Product\"";
@@ -30,9 +30,7 @@ function localizeTopProduct(product) {
     return addVietnameseAliases(product, {
         name: "ten_san_pham",
         sku: "ma_sku",
-        sold_quantity: "so_luong_da_ban",
-        average_rating: "diem_danh_gia_trung_binh",
-        review_count: "tong_so_danh_gia"
+        sold_quantity: "so_luong_da_ban"
     });
 }
 
@@ -47,10 +45,8 @@ const DashboardModel = {
             totalOrders,
             pendingOrders,
             openChats,
-            totalReviews,
             totalRevenue,
             unreadNotifications,
-            averageRatingRow,
             recentOrders,
             topProducts,
             orderStatusRows
@@ -63,16 +59,8 @@ const DashboardModel = {
             Order.count(),
             Order.count({ where: { status: { [Op.in]: ["pending", "confirmed", "preparing"] } } }),
             ChatConversation.count({ where: { status: "open" } }),
-            ProductReview.count(),
             Order.sum("total_amount", { where: { payment_status: "paid" } }),
             Notification.count({ where: { user_id: actor.id, is_read: false } }),
-            ProductReview.findOne({
-                attributes: [
-                    [fn("COUNT", col("id")), "review_count"],
-                    [fn("AVG", col("rating")), "average_rating"]
-                ],
-                raw: true
-            }),
             Order.findAll({
                 attributes: ["id", "order_code", "customer_name", "total_amount", "status", "payment_status", "created_at"],
                 order: [["created_at", "DESC"]],
@@ -84,11 +72,9 @@ const DashboardModel = {
                     "id",
                     "name",
                     "sku",
-                    [literal(`(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "sold_quantity"],
-                    [literal(`(SELECT COALESCE(AVG(pr.rating), 0) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "average_rating"],
-                    [literal(`(SELECT COUNT(*) FROM product_reviews pr WHERE pr.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "review_count"]
+                    [literal(`(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi WHERE oi.product_id = ${PRODUCT_TABLE_ALIAS}.id)`), "sold_quantity"]
                 ],
-                order: [[literal("sold_quantity"), "DESC"], [literal("average_rating"), "DESC"], ["created_at", "DESC"]],
+                order: [[literal("sold_quantity"), "DESC"], ["created_at", "DESC"]],
                 limit: 5,
                 raw: true
             }),
@@ -100,7 +86,6 @@ const DashboardModel = {
         ]);
 
         const revenue = Number(totalRevenue || 0);
-        const averageRating = Number(averageRatingRow?.average_rating || 0);
 
         return {
             summary: addVietnameseAliases({
@@ -112,8 +97,6 @@ const DashboardModel = {
                 total_orders: totalOrders,
                 pending_orders: pendingOrders,
                 open_chats: openChats,
-                total_reviews: totalReviews,
-                average_rating: Number(averageRating.toFixed(2)),
                 total_revenue: Number(revenue.toFixed(2)),
                 unread_notifications: unreadNotifications
             }, {
@@ -125,8 +108,6 @@ const DashboardModel = {
                 total_orders: "tong_don_hang",
                 pending_orders: "tong_don_can_xu_ly",
                 open_chats: "tong_hoi_thoai_dang_mo",
-                total_reviews: "tong_danh_gia",
-                average_rating: "diem_danh_gia_trung_binh",
                 total_revenue: "tong_doanh_thu",
                 unread_notifications: "tong_thong_bao_chua_doc"
             }),

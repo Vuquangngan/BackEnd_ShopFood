@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS products (
     unit VARCHAR(50) NOT NULL DEFAULT 'item',
     production_date DATE NULL,
     expiration_date DATE NULL,
-    thumbnail_url VARCHAR(255) NULL,
+    thumbnail_url MEDIUMTEXT NULL,
     is_featured BOOLEAN NOT NULL DEFAULT FALSE,
     status ENUM('draft', 'active', 'out_of_stock', 'archived') NOT NULL DEFAULT 'active',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -136,6 +136,34 @@ CREATE TABLE IF NOT EXISTS coupons (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_coupons_code (code)
+);
+
+CREATE TABLE IF NOT EXISTS promotion_campaigns (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(160) NOT NULL,
+    type ENUM('discount', 'buy_x_get_y') NOT NULL DEFAULT 'discount',
+    status ENUM('draft', 'active', 'paused', 'expired') NOT NULL DEFAULT 'active',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    apply_scope ENUM('products', 'categories') NOT NULL DEFAULT 'products',
+    apply_product_ids TEXT NULL,
+    gift_product_id INT UNSIGNED NULL,
+    discount_percent DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    time_range VARCHAR(120) NULL,
+    start_date DATETIME NULL,
+    end_date DATETIME NULL,
+    note TEXT NULL,
+    created_by INT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_promotion_campaigns_type (type),
+    KEY idx_promotion_campaigns_status (status),
+    KEY idx_promotion_campaigns_active (is_active),
+    CONSTRAINT fk_promotion_campaigns_gift_product
+        FOREIGN KEY (gift_product_id) REFERENCES products(id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_promotion_campaigns_creator
+        FOREIGN KEY (created_by) REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -253,25 +281,6 @@ CREATE TABLE IF NOT EXISTS recipe_favorites (
         FOREIGN KEY (recipe_id) REFERENCES recipes(id)
         ON DELETE CASCADE
 );
-
-CREATE TABLE IF NOT EXISTS recipe_reviews (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
-    recipe_id INT UNSIGNED NOT NULL,
-    rating TINYINT UNSIGNED NOT NULL,
-    comment TEXT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_recipe_reviews_user_recipe (user_id, recipe_id),
-    CONSTRAINT fk_recipe_reviews_user
-        FOREIGN KEY (user_id) REFERENCES users(id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_recipe_reviews_recipe
-        FOREIGN KEY (recipe_id) REFERENCES recipes(id)
-        ON DELETE CASCADE
-);
-
-
 
 -- ============================================
 -- DU LIEU MAU SHOPFOOD

@@ -72,6 +72,29 @@ function calculateDiscountAmount(coupon, subtotal) {
     return Number(Math.min(Number(coupon.discount_value || 0), subtotalValue).toFixed(2));
 }
 
+function normalizeCouponStartDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function normalizeCouponEndDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const isStartOfDay = date.getHours() === 0
+        && date.getMinutes() === 0
+        && date.getSeconds() === 0
+        && date.getMilliseconds() === 0;
+
+    if (isStartOfDay) {
+        date.setHours(23, 59, 59, 999);
+    }
+
+    return date;
+}
+
 function parseCampaignMetadata(coupon) {
     try {
         return coupon?.campaign_metadata ? JSON.parse(coupon.campaign_metadata) : {};
@@ -132,11 +155,14 @@ function ensureCouponIsUsable(coupon, subtotal, context = {}) {
         throw createCouponError("Mã giảm giá hiện đang ngừng áp dụng.");
     }
 
-    if (coupon.start_date && new Date(coupon.start_date) > now) {
+    const startDate = normalizeCouponStartDate(coupon.start_date);
+    const endDate = normalizeCouponEndDate(coupon.end_date);
+
+    if (startDate && startDate > now) {
         throw createCouponError("Mã giảm giá chưa đến thời gian áp dụng.");
     }
 
-    if (coupon.end_date && new Date(coupon.end_date) < now) {
+    if (endDate && endDate < now) {
         throw createCouponError("Mã giảm giá đã hết hạn sử dụng.");
     }
 

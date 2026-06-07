@@ -1,6 +1,5 @@
 ﻿const Product = require("../models/productModel");
 const { withCommonResponseAliases } = require("../utils/responseHelpers");
-const { createForRoles } = require("../services/notificationService");
 
 function parseId(value) {
     const id = Number(value);
@@ -66,70 +65,6 @@ exports.getById = async (req, res) => {
         }
 
         return res.json(product);
-    } catch (error) {
-        return handleError(res, error);
-    }
-};
-
-exports.getReviews = async (req, res) => {
-    try {
-        const id = parseId(req.params.id);
-        if (!id) {
-            return res.status(400).json(withCommonResponseAliases({
-                message: "Mã sản phẩm không hợp lệ."
-            }));
-        }
-
-        const reviews = await Product.getReviews(id, req.query);
-        if (!reviews) {
-            return res.status(404).json(withCommonResponseAliases({
-                message: "Không tìm thấy sản phẩm để xem đánh giá."
-            }));
-        }
-
-        return res.json(reviews);
-    } catch (error) {
-        return handleError(res, error);
-    }
-};
-
-exports.submitReview = async (req, res) => {
-    try {
-        const id = parseId(req.params.id);
-        if (!id) {
-            return res.status(400).json(withCommonResponseAliases({
-                message: "Mã sản phẩm không hợp lệ."
-            }));
-        }
-
-        if (req.body.rating === undefined) {
-            return res.status(400).json(withCommonResponseAliases({
-                message: "Vui lòng nhập số sao đánh giá từ 1 đến 5."
-            }));
-        }
-
-        const payload = await Product.upsertReview(id, req.user.id, req.body);
-        if (!payload) {
-            return res.status(404).json(withCommonResponseAliases({
-                message: "Không tìm thấy sản phẩm để đánh giá."
-            }));
-        }
-
-        await createForRoles(["admin", "staff"], {
-            type: "product_review",
-            title: "Có đánh giá sản phẩm mới",
-            message: `${req.user.username} vừa đánh giá sản phẩm có mã ${id}.`,
-            metadata: {
-                product_id: id,
-                user_id: req.user.id,
-                rating: Number(req.body.rating)
-            }
-        });
-
-        return res.status(201).json(withCommonResponseAliases({
-            message: "Gửi đánh giá sản phẩm thành công.",
-            ...payload
-        }));
     } catch (error) {
         return handleError(res, error);
     }
