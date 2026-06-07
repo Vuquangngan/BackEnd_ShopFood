@@ -433,6 +433,44 @@ const Coupon = sequelize.define("Coupon", {
     tableName: "coupons"
 });
 
+const PromotionCampaign = sequelize.define("PromotionCampaign", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING(160), allowNull: false },
+    type: {
+        type: DataTypes.ENUM("discount", "buy_x_get_y"),
+        allowNull: false,
+        defaultValue: "discount"
+    },
+    status: {
+        type: DataTypes.ENUM("draft", "active", "paused", "expired"),
+        allowNull: false,
+        defaultValue: "active"
+    },
+    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    apply_scope: {
+        type: DataTypes.ENUM("products", "categories"),
+        allowNull: false,
+        defaultValue: "products"
+    },
+    apply_product_ids: { type: DataTypes.TEXT },
+    gift_product_id: { type: DataTypes.INTEGER.UNSIGNED },
+    discount_percent: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
+    time_range: { type: DataTypes.STRING(120) },
+    start_date: { type: DataTypes.DATE },
+    end_date: { type: DataTypes.DATE },
+    note: { type: DataTypes.TEXT },
+    created_by: { type: DataTypes.INTEGER.UNSIGNED }
+}, {
+    ...commonOptions,
+    tableName: "promotion_campaigns",
+    indexes: [
+        { fields: ["type"] },
+        { fields: ["status"] },
+        { fields: ["is_active"] },
+        { fields: ["start_date", "end_date"] }
+    ]
+});
+
 const Order = sequelize.define("Order", {
     id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
     order_code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
@@ -818,6 +856,10 @@ User.hasMany(Order, { foreignKey: "user_id", as: "orders", onDelete: "SET NULL" 
 Order.belongsTo(User, { foreignKey: "user_id", as: "user", onDelete: "SET NULL" });
 Coupon.hasMany(Order, { foreignKey: "coupon_id", as: "orders", onDelete: "SET NULL" });
 Order.belongsTo(Coupon, { foreignKey: "coupon_id", as: "coupon", onDelete: "SET NULL" });
+User.hasMany(PromotionCampaign, { foreignKey: "created_by", as: "promotion_campaigns", onDelete: "SET NULL" });
+PromotionCampaign.belongsTo(User, { foreignKey: "created_by", as: "creator", onDelete: "SET NULL" });
+Product.hasMany(PromotionCampaign, { foreignKey: "gift_product_id", as: "gift_promotion_campaigns", onDelete: "SET NULL" });
+PromotionCampaign.belongsTo(Product, { foreignKey: "gift_product_id", as: "gift_product", onDelete: "SET NULL" });
 
 Order.hasMany(OrderItem, { foreignKey: "order_id", as: "items", onDelete: "CASCADE" });
 OrderItem.belongsTo(Order, { foreignKey: "order_id", as: "order", onDelete: "CASCADE" });
@@ -892,6 +934,7 @@ module.exports = {
     Cart,
     CartItem,
     Coupon,
+    PromotionCampaign,
     Order,
     OrderItem,
     PaymentTransaction,

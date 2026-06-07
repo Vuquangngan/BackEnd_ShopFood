@@ -21,6 +21,7 @@ const productRoutes = require("./routes/productRoutes");
 const recipeRoutes = require("./routes/recipeRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const couponRoutes = require("./routes/couponRoutes");
+const promotionRoutes = require("./routes/promotionRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -83,6 +84,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/recipes", recipeRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/promotions", promotionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/notifications", notificationRoutes);
@@ -827,6 +829,31 @@ async function ensureRuntimeSchema() {
             type: DataTypes.TEXT,
             allowNull: true
         });
+    }
+
+    if (!existingTables.includes("promotion_campaigns")) {
+        await queryInterface.createTable("promotion_campaigns", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            name: { type: DataTypes.STRING(160), allowNull: false },
+            type: { type: DataTypes.ENUM("discount", "buy_x_get_y"), allowNull: false, defaultValue: "discount" },
+            status: { type: DataTypes.ENUM("draft", "active", "paused", "expired"), allowNull: false, defaultValue: "active" },
+            is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+            apply_scope: { type: DataTypes.ENUM("products", "categories"), allowNull: false, defaultValue: "products" },
+            apply_product_ids: { type: DataTypes.TEXT, allowNull: true },
+            gift_product_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+            discount_percent: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 0 },
+            time_range: { type: DataTypes.STRING(120), allowNull: true },
+            start_date: { type: DataTypes.DATE, allowNull: true },
+            end_date: { type: DataTypes.DATE, allowNull: true },
+            note: { type: DataTypes.TEXT, allowNull: true },
+            created_by: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("promotion_campaigns", ["type"], { name: "promotion_campaigns_type_idx" });
+        await queryInterface.addIndex("promotion_campaigns", ["status"], { name: "promotion_campaigns_status_idx" });
+        await queryInterface.addIndex("promotion_campaigns", ["is_active"], { name: "promotion_campaigns_is_active_idx" });
+        await queryInterface.addIndex("promotion_campaigns", ["start_date", "end_date"], { name: "promotion_campaigns_date_idx" });
     }
 
     await queryInterface.changeColumn("inventory_documents", "total_quantity", {
