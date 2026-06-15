@@ -65,10 +65,14 @@ function localizeCustomer(user) {
     return addVietnameseAliases({
         ...localizedUser,
         loyalty_points: user.loyalty_points || 0,
+        points: user.loyalty_points || 0,
+        diem_tich_luy: user.loyalty_points || 0,
         membership_tier: user.membership_tier || "dong",
         membership_tier_label: user.membership_tier_label || "Đồng",
+        hang_thanh_vien_hien_thi: user.membership_tier_label || "Đồng",
         total_spent: user.total_spent || 0,
         completed_orders_count: user.completed_orders_count || 0,
+        so_don_hoan_thanh: user.completed_orders_count || 0,
         next_membership_tier: user.next_membership_tier || null,
         next_membership_tier_label: user.next_membership_tier_label || null,
         points_to_next_tier: user.points_to_next_tier || 0

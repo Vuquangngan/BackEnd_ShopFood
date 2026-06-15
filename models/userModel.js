@@ -1,4 +1,4 @@
-const { Op } = require("sequelize");
+﻿const { Op } = require("sequelize");
 const { sequelize, Order, User, UserAddress } = require("./index");
 
 const USER_UPDATE_FIELDS = ["username", "phone", "avatar_url"];
