@@ -13,6 +13,7 @@
     "db:fresh": "node scripts/resetDb.js && node scripts/seedDb.js",
     "db:seed": "node scripts/seedDb.js",
     "db:seed:demo": "node scripts/seedDemo.js",
+    "db:import:image-products": "node scripts/importProductsFromImages.js",
     "db:migrate:uploads": "node scripts/migrateUploadImagesToDb.js",
     "start:seed": "node scripts/seedDb.js && node server.js",
     "start:seed:demo": "node scripts/seedDemo.js && node server.js",

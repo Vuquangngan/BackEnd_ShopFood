@@ -150,7 +150,6 @@ async function migrateProductThumbnails() {
 
 async function main() {
     await sequelize.authenticate();
-    await sequelize.sync();
 
     await migrateModel(Category, "image_url", "categories.image_url");
     await migrateModel(RecipeCategory, "image_url", "recipe_categories.image_url");

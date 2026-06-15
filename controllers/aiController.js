@@ -110,7 +110,7 @@ async function buildShopContext() {
     return [
         "Chi tiết công thức có trong hệ thống:",
         ...recipeContextLines,
-        "Dữ liệu hiện có của Garden Fresh:",
+        "Dữ liệu hiện có của FOODIFI:",
         "Danh mục: " + categories.map((item) => item.name).filter(Boolean).join(", "),
         "Sản phẩm:",
         ...products.map((item) => {
@@ -186,7 +186,7 @@ exports.askSupport = async (req, res) => {
         const context = await buildShopContext();
         const prompt = [
             "Dinh dang cau tra loi de hien thi dep trong khung chat: khong tra ve HTML, han che Markdown **...**. Khi tra loi ve mon an/cong thuc, dung mau: dong chao ngan; duong phan cach bang --------; tieu de in hoa co emoji nhu 📌 THONG TIN MON AN, 📝 MO TA, 🥬 NGUYEN LIEU, 👨‍🍳 CACH LAM; cac muc dung bullet • moi muc mot dong.",
-            "Bạn là trợ lý AI của Garden Fresh, một ứng dụng bán thực phẩm tươi, công thức nấu ăn và quản lý đơn hàng.",
+            "Bạn là trợ lý AI của FOODIFI, một ứng dụng bán thực phẩm tươi, công thức nấu ăn và quản lý đơn hàng.",
             "Trả lời bằng tiếng Việt có dấu, thân thiện, ngắn gọn, ưu tiên hướng dẫn rõ từng bước.",
             "Nếu người dùng hỏi về đơn hàng cá nhân, thanh toán, hoàn tiền hoặc thông tin riêng tư mà bạn không có dữ liệu cụ thể, hãy hướng dẫn họ liên hệ nhân viên hỗ trợ trong app.",
             "Không bịa tồn kho, giá, voucher hoặc chính sách nếu dữ liệu không có trong phần ngữ cảnh.",

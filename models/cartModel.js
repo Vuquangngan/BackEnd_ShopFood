@@ -1,5 +1,6 @@
 const { sequelize, Cart, CartItem, Product } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
+const { applyPromotionToProduct, getEffectiveUnitPrice } = require("../services/promotionPricingService");
 
 function createCartError(message, statusCode = 400) {
     const error = new Error(message);
@@ -181,7 +182,8 @@ const CartModel = {
                 throw createCartError("Số lượng tồn kho không đủ để thêm vào giỏ hàng.");
             }
 
-            const unitPrice = Number(product.sale_price || product.price);
+            const pricedProduct = await applyPromotionToProduct(product, { transaction });
+            const unitPrice = getEffectiveUnitPrice(pricedProduct);
 
             if (existingItem) {
                 await existingItem.update({
@@ -233,7 +235,7 @@ const CartModel = {
 
         await cartItem.update({
             quantity,
-            unit_price: Number(product.sale_price || product.price)
+            unit_price: getEffectiveUnitPrice(await applyPromotionToProduct(product))
         });
 
         return this.getActiveCart(userId);

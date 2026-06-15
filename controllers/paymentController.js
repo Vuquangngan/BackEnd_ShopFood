@@ -1,4 +1,4 @@
-﻿const Payment = require("../models/paymentModel");
+const Payment = require("../models/paymentModel");
 const { withCommonResponseAliases } = require("../utils/responseHelpers");
 const { attachCheckoutUrl, buildCheckoutUrl } = require("../utils/paymentHelpers");
 const { createForRoles, createForUser } = require("../services/notificationService");
@@ -164,7 +164,7 @@ p { line-height: 1.5; color: #425142; }
 </head>
 <body>
 <div class="box">
-<h1>Đã quay lại Garden Fresh</h1>
+<h1>Đã quay lại FOODIFI</h1>
 <p>Nếu bạn đã thanh toán thành công, đơn hàng sẽ được cập nhật sau khi ZaloPay gửi xác nhận về hệ thống.</p>
 <p>Bạn có thể đóng trang này và quay lại ứng dụng để xem trạng thái đơn hàng.</p>
 </div>
@@ -184,7 +184,7 @@ exports.renderCheckoutPage = async (req, res) => {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Thanh toán online Garden Fresh</title>
+<title>Thanh toán online FOODIFI</title>
 <style>
 body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #fff8ef, #f2f8ff); color: #222; margin: 0; }
 .container { max-width: 620px; margin: 40px auto; background: #fff; border-radius: 20px; box-shadow: 0 18px 60px rgba(0,0,0,0.08); padding: 28px; }
@@ -204,7 +204,7 @@ button { border: 0; border-radius: 12px; padding: 14px 18px; font-size: 15px; fo
 <body>
 <div class="container">
 <span class="badge">Cổng thanh toán giả lập</span>
-<h1>Thanh toán đơn hàng Garden Fresh</h1>
+<h1>Thanh toán đơn hàng FOODIFI</h1>
 <p>Trang này dùng để mô phỏng thanh toán online trong quá trình làm đồ án và test API.</p>
 <div class="grid">
 <div class="card"><div class="label">Mã thanh toán</div><div class="value">${escapeHtml(payment.payment_code)}</div></div>

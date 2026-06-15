@@ -1,4 +1,4 @@
-﻿const nodemailer = require("nodemailer");
+const nodemailer = require("nodemailer");
 
 require("dotenv").config({ quiet: true });
 
@@ -31,7 +31,7 @@ function getTransporter() {
 
 function getFromAddress() {
     return {
-        name: process.env.EMAIL_FROM_NAME || "Garden Fresh",
+        name: process.env.EMAIL_FROM_NAME || "FOODIFI",
         address: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER
     };
 }
@@ -52,11 +52,11 @@ async function sendForgotPasswordEmail({ to, username, temporaryPassword }) {
     await mailer.sendMail({
         from: getFromAddress(),
         to,
-        subject: "Mật khẩu tạm thời từ hệ thống Garden Fresh",
+        subject: "Mật khẩu tạm thời từ hệ thống FOODIFI",
         text: [
             `Xin chào ${displayName},`,
             "",
-            "Hệ thống Garden Fresh đã tạo một mật khẩu tạm thời cho tài khoản của bạn.",
+            "Hệ thống FOODIFI đã tạo một mật khẩu tạm thời cho tài khoản của bạn.",
             `Mật khẩu tạm thời: ${temporaryPassword}`,
             "",
             "Vui lòng đăng nhập lại và đổi mật khẩu ngay sau khi vào hệ thống.",
@@ -64,7 +64,7 @@ async function sendForgotPasswordEmail({ to, username, temporaryPassword }) {
         ].join("\n"),
         html: `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
-                <h2>Garden Fresh</h2>
+                <h2>FOODIFI</h2>
                 <p>Xin chào <strong>${displayName}</strong>,</p>
                 <p>Hệ thống đã tạo một <strong>mật khẩu tạm thời</strong> cho tài khoản của bạn.</p>
                 <p style="font-size:18px"><strong>${temporaryPassword}</strong></p>
@@ -104,7 +104,7 @@ async function sendShiftRegistrationEmail({
         ].join("\n"),
         html: `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
-                <h2>Garden Fresh</h2>
+                <h2>FOODIFI</h2>
                 <p>Xin chào <strong>${displayName}</strong>,</p>
                 <p>Quản lý đã xác nhận ca làm việc của bạn.</p>
                 <table cellpadding="8" cellspacing="0" style="border-collapse:collapse">
@@ -154,7 +154,7 @@ async function sendWeeklyShiftScheduleEmail({
         ].join("\n"),
         html: `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
-                <h2>Garden Fresh</h2>
+                <h2>FOODIFI</h2>
                 <p>Xin chào <strong>${displayName}</strong>,</p>
                 <p>Quản lý đã xác nhận lịch làm việc trong tuần của bạn tại <strong>${branchName}</strong>.</p>
                 <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:640px">
@@ -188,7 +188,7 @@ async function sendCampaignEmail({
     const mailer = getTransporter();
     const displayName = username || "bạn";
     const safeSubject = String(subject || "").trim();
-    const safeTitle = String(title || campaignName || "Garden Fresh").trim();
+    const safeTitle = String(title || campaignName || "FOODIFI").trim();
     const safeSummary = String(summary || "").trim();
     const safeCtaLabel = String(ctaLabel || "Xem ngay").trim();
     const safeCtaUrl = String(ctaUrl || "").trim();
@@ -197,7 +197,7 @@ async function sendCampaignEmail({
         ? `<p style="margin:24px 0"><a href="${escapeHtml(safeCtaUrl)}" style="display:inline-block;background:#0d8748;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700">${escapeHtml(safeCtaLabel)}</a></p>`
         : "";
     const bannerHtml = safeBannerUrl
-        ? `<img src="${escapeHtml(safeBannerUrl)}" alt="${escapeHtml(campaignName || "Garden Fresh")}" style="width:100%;max-width:640px;border-radius:18px;display:block;margin:0 0 22px">`
+        ? `<img src="${escapeHtml(safeBannerUrl)}" alt="${escapeHtml(campaignName || "FOODIFI")}" style="width:100%;max-width:640px;border-radius:18px;display:block;margin:0 0 22px">`
         : "";
 
     await mailer.sendMail({
@@ -213,7 +213,7 @@ async function sendCampaignEmail({
             "",
             safeCtaUrl ? `${safeCtaLabel}: ${safeCtaUrl}` : "",
             "",
-            "Bạn nhận email này vì đã đăng ký hoặc mua hàng tại Garden Fresh."
+            "Bạn nhận email này vì đã đăng ký hoặc mua hàng tại FOODIFI."
         ].filter(Boolean).join("\n"),
         html: `
             <div style="margin:0;background:#f4f8ef;padding:28px 12px;font-family:Arial,sans-serif;color:#253728">
@@ -225,7 +225,7 @@ async function sendCampaignEmail({
                     <p style="font-size:15px;line-height:1.7;color:#415242;margin:0">${escapeHtml(safeSummary).replace(/\n/g, "<br>")}</p>
                     ${buttonHtml}
                     ${preheader ? `<p style="font-size:13px;color:#6f7f70;margin-top:18px">${escapeHtml(preheader)}</p>` : ""}
-                    <p style="border-top:1px solid #e7eee5;margin-top:24px;padding-top:16px;font-size:12px;color:#7c887d">Bạn nhận email này vì đã đăng ký hoặc mua hàng tại Garden Fresh.</p>
+                    <p style="border-top:1px solid #e7eee5;margin-top:24px;padding-top:16px;font-size:12px;color:#7c887d">Bạn nhận email này vì đã đăng ký hoặc mua hàng tại FOODIFI.</p>
                 </div>
             </div>
         `

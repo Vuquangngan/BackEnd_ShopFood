@@ -66,7 +66,7 @@ function localizeCustomer(user) {
         ...localizedUser,
         loyalty_points: user.loyalty_points || 0,
         membership_tier: user.membership_tier || "dong",
-        membership_tier_label: user.membership_tier_label || "Dong",
+        membership_tier_label: user.membership_tier_label || "Đồng",
         total_spent: user.total_spent || 0,
         completed_orders_count: user.completed_orders_count || 0,
         next_membership_tier: user.next_membership_tier || null,
@@ -86,7 +86,7 @@ function localizeCustomer(user) {
 
 exports.getMe = async (req, res) => {
     const user = await User.getProfile(req.user.id);
-    return res.json(localizeUser(user));
+    return res.json(user?.role === "customer" ? localizeCustomer(user) : localizeUser(user));
 };
 
 exports.updateMe = async (req, res) => {

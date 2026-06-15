@@ -11,6 +11,7 @@ const {
 } = require("./index");
 const CouponModel = require("./couponModel");
 const InventoryModel = require("./inventoryModel");
+const { applyPromotionsToProducts, getEffectiveUnitPrice } = require("../services/promotionPricingService");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
 
 const SHIPPING_MARK_DELIVERED_DELAY_MS = 2 * 60 * 1000;
@@ -446,9 +447,12 @@ const OrderModel = {
                 throw createOrderError("Co san pham khong ton tai trong he thong.");
             }
 
+            const promotedProducts = await applyPromotionsToProducts(products, { transaction });
             const productMap = new Map(products.map((product) => [product.id, product]));
+            const pricedProductMap = new Map(promotedProducts.map((product) => [product.id, product]));
             const orderItems = normalizedItems.map((item) => {
                 const product = productMap.get(item.product_id);
+                const pricedProduct = pricedProductMap.get(item.product_id) || product;
 
                 if (!product || !product.is_published || product.status !== "active") {
                     throw createOrderError(`San pham co ma ${item.product_id} hien khong duoc mo ban.`);
@@ -458,7 +462,7 @@ const OrderModel = {
                     throw createOrderError(`San pham ${product.name} khong du so luong ton kho.`);
                 }
 
-                const unitPrice = Number(product.sale_price || product.price);
+                const unitPrice = getEffectiveUnitPrice(pricedProduct);
                 const lineTotal = unitPrice * item.quantity;
 
                 return {

@@ -1,4 +1,4 @@
-# ShopFood Backend
+# FOODIFI Backend
 
 Backend cho ung dung cua hang thuc pham, xay dung bang `Node.js`, `Express.js`, `MySQL` va `Sequelize ORM`.
 
@@ -85,7 +85,7 @@ EMAIL_PORT=587
 EMAIL_SECURE=false
 EMAIL_USER=
 EMAIL_PASS=
-EMAIL_FROM_NAME=ShopFood
+EMAIL_FROM_NAME=FOODIFI
 EMAIL_FROM_ADDRESS=
 UPLOAD_MAX_FILE_SIZE_MB=5
 ```

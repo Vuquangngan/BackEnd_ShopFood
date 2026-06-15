@@ -1,6 +1,7 @@
 ﻿const { Op, literal } = require("sequelize");
 const { sequelize, Category, Product, ProductImage, ProductStoreAllocation } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
+const { applyPromotionToProduct, applyPromotionsToProducts } = require("../services/promotionPricingService");
 
 const PRODUCT_FIELDS = [
     "category_id",
@@ -26,6 +27,20 @@ const PRODUCT_FIELDS = [
 
 const PRODUCT_TABLE_ALIAS = "\"Product\"";
 const CURRENT_PRICE_SQL = `COALESCE(${PRODUCT_TABLE_ALIAS}.sale_price, ${PRODUCT_TABLE_ALIAS}.price)`;
+const SOLD_QUANTITY_SQL = `(
+    SELECT COALESCE(SUM(oi.quantity), 0)
+    FROM order_items oi
+    INNER JOIN orders o ON o.id = oi.order_id
+    WHERE oi.product_id = ${PRODUCT_TABLE_ALIAS}.id
+      AND o.status <> 'cancelled'
+      AND (
+        o.status = 'completed'
+        OR o.shipping_status = 'delivered'
+        OR o.delivered_at IS NOT NULL
+        OR o.completed_at IS NOT NULL
+        OR o.customer_received_at IS NOT NULL
+      )
+)`;
 const LATEST_SUPPLIER_NAME_SQL = `(
     SELECT s.name
     FROM inventory_document_items idi
@@ -202,6 +217,7 @@ function buildProductAttributes() {
     return {
         include: [
             [literal(CURRENT_PRICE_SQL), "current_price"],
+            [literal(SOLD_QUANTITY_SQL), "sold_quantity"],
             [literal(LATEST_SUPPLIER_NAME_SQL), "supplier_name"]
         ]
     };
@@ -340,10 +356,11 @@ function resolvePublishedAllocationQuantity(allocation) {
         : 0;
 }
 
-function toPlainProduct(productInstance) {
+function toPlainProduct(productInstance, options = {}) {
     if (!productInstance) return null;
 
     const product = productInstance.get({ plain: true });
+    const onlyPublic = options.onlyPublic === true || options.onlyPublic === "true";
     const storeAllocations = Array.isArray(product.store_allocations)
         ? product.store_allocations.map((allocation) => ({
             ...allocation,
@@ -351,8 +368,12 @@ function toPlainProduct(productInstance) {
         }))
         : [];
     const hasStoreAllocations = storeAllocations.length > 0;
+    const publishedStoreQuantity = storeAllocations.reduce((total, allocation) => {
+        return total + resolvePublishedAllocationQuantity(allocation);
+    }, 0);
     const isPublishedByStore = storeAllocations.some((allocation) => resolvePublishedAllocationQuantity(allocation) > 0);
-    const stockQuantity = roundStockQuantity(product.stock_quantity || 0);
+    const warehouseStockQuantity = roundStockQuantity(product.stock_quantity || 0);
+    const stockQuantity = onlyPublic ? roundStockQuantity(publishedStoreQuantity) : warehouseStockQuantity;
     const stockUnit = resolveStockUnitValue(product);
     const saleUnit = resolveSaleUnitValue(product);
     const stockPerSaleUnit = getStockPerSaleUnit(product);
@@ -360,8 +381,10 @@ function toPlainProduct(productInstance) {
         stock_quantity: stockQuantity,
         stock_per_sale_unit: stockPerSaleUnit
     });
-    const effectivePublished = hasStoreAllocations ? isPublishedByStore : Boolean(product.is_published);
-    const isSellable = effectivePublished && product.status === "active" && hasRemainingWarehouseStock(product);
+    const effectivePublished = onlyPublic
+        ? isPublishedByStore
+        : (hasStoreAllocations ? isPublishedByStore : Boolean(product.is_published));
+    const isSellable = effectivePublished && product.status === "active" && stockQuantity > 0;
 
     return {
         ...product,
@@ -374,6 +397,7 @@ function toPlainProduct(productInstance) {
         images: product.images || [],
         store_allocations: storeAllocations,
         current_price: Number(product.current_price || product.sale_price || product.price || 0),
+        sold_quantity: Number(product.sold_quantity || 0),
         available_sale_quantity: availableSaleQuantity,
         is_published: effectivePublished,
         is_sellable: isSellable
@@ -402,6 +426,12 @@ function localizeProduct(product) {
             price: "gia_ban",
             sale_price: "gia_khuyen_mai",
             current_price: "gia_hien_tai",
+            sold_quantity: "so_luong_da_ban",
+            promotion_label: "nhan_khuyen_mai",
+            promotion_name: "ten_khuyen_mai",
+            promotion_type: "loai_khuyen_mai",
+            badge_label: "nhan_hien_thi",
+            khuyen_mai_label: "nhan_khuyen_mai_tieng_viet",
             stock_quantity: "so_luong_ton",
             stock_unit: "don_vi_kho",
             stock_per_sale_unit: "so_luong_kho_moi_don_vi_ban",
@@ -435,6 +465,8 @@ function localizeProduct(product) {
 
 function buildSortOrder(sortBy) {
     switch (sortBy) {
+    case "best_selling":
+        return [[literal("sold_quantity"), "DESC"], ["created_at", "DESC"]];
     case "price_asc":
         return [[literal(CURRENT_PRICE_SQL), "ASC"]];
     case "price_desc":
@@ -555,10 +587,11 @@ const ProductModel = {
             distinct: true
         });
 
-        const items = rows
-            .map((product) => toPlainProduct(product))
-            .filter((product) => filters.in_stock === "true" ? Number(product.stock_quantity || 0) > 0 : true)
-            .map(localizeProduct);
+        const plainItems = rows
+            .map((product) => toPlainProduct(product, { onlyPublic }))
+            .filter((product) => filters.in_stock === "true" ? Number(product.stock_quantity || 0) > 0 : true);
+        const promotedItems = await applyPromotionsToProducts(plainItems);
+        const items = promotedItems.map(localizeProduct);
 
         return {
             items,
@@ -598,14 +631,14 @@ const ProductModel = {
             ]
         });
 
-        const plain = toPlainProduct(product);
+        const plain = toPlainProduct(product, { onlyPublic: options.only_public });
         if (!plain) return null;
 
         if (options.only_public && !isProductPublic(plain)) {
             return null;
         }
 
-        return localizeProduct(plain);
+        return localizeProduct(await applyPromotionToProduct(plain));
     },
 
     async create(data) {

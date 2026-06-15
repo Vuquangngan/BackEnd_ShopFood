@@ -116,7 +116,7 @@ async function createOrder({ order, payment, req }) {
         app_trans_id: appTransId,
         embed_data: embedData,
         item,
-        description: `Garden Fresh - Thanh toán đơn hàng #${order.order_code}`,
+        description: `FOODIFI - Thanh toán đơn hàng #${order.order_code}`,
         bank_code: process.env.ZALOPAY_BANK_CODE || "",
         callback_url: callbackUrl,
         phone: order.customer_phone || "",

@@ -4,14 +4,13 @@ const { sequelize, Order, User, UserAddress } = require("./index");
 const USER_UPDATE_FIELDS = ["username", "phone", "avatar_url"];
 const ADMIN_USER_UPDATE_FIELDS = ["username", "code", "email", "phone", "avatar_url", "role", "status", "must_change_password"];
 const ADDRESS_FIELDS = ["full_name", "phone", "address_line", "ward", "district", "city", "is_default"];
-const CUSTOMER_POINT_STEP_AMOUNT = 100000;
-const CUSTOMER_POINT_STEP_VALUE = 50;
+const CUSTOMER_POINT_STEP_AMOUNT = 1000;
 const CUSTOMER_TIERS = [
-    { key: "dong", label: "Dong", minPoints: 0 },
-    { key: "bac", label: "Bac", minPoints: 500 },
-    { key: "vang", label: "Vang", minPoints: 2500 },
-    { key: "bach_kim", label: "Bach kim", minPoints: 5000 },
-    { key: "kim_cuong", label: "Kim cuong", minPoints: 14000 },
+    { key: "dong", label: "Đồng", minPoints: 0 },
+    { key: "bac", label: "Bạc", minPoints: 500 },
+    { key: "vang", label: "Vàng", minPoints: 2500 },
+    { key: "bach_kim", label: "Bạch kim", minPoints: 5000 },
+    { key: "kim_cuong", label: "Kim cương", minPoints: 14000 },
     { key: "vip", label: "VIP", minPoints: 20000 }
 ];
 
@@ -35,15 +34,27 @@ function getTierFromPoints(pointsValue) {
 function calculateOrderLoyaltyPoints(orderValue) {
     const value = Number(orderValue || 0);
     if (!Number.isFinite(value) || value <= 0) return 0;
-    return Math.ceil((value / CUSTOMER_POINT_STEP_AMOUNT) * CUSTOMER_POINT_STEP_VALUE);
+    return Math.floor(value / CUSTOMER_POINT_STEP_AMOUNT);
+}
+
+function isLoyaltyEligibleOrder(order) {
+    if (!order || order.status === "cancelled" || order.return_status) return false;
+    const shippingStatus = String(order.shipping_status || "").trim().toLowerCase();
+    return order.status === "completed" ||
+        shippingStatus === "delivered" ||
+        Boolean(order.customer_received_at) ||
+        Boolean(order.completed_at) ||
+        Boolean(order.delivered_at);
 }
 
 function decorateCustomer(user, orders) {
-    const completedOrders = orders.filter((order) => order.status === "completed");
+    const completedOrders = orders.filter(isLoyaltyEligibleOrder);
     const completedOrdersCount = completedOrders.length;
-    const totalSpent = completedOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+    const totalSpent = completedOrders.reduce((sum, order) => {
+        return sum + Number(order.subtotal || order.total_amount || 0);
+    }, 0);
     const loyaltyPoints = completedOrders.reduce((sum, order) => {
-        return sum + calculateOrderLoyaltyPoints(order.total_amount);
+        return sum + calculateOrderLoyaltyPoints(order.subtotal || order.total_amount);
     }, 0);
     const currentTier = getTierFromPoints(loyaltyPoints);
     const nextTier = CUSTOMER_TIERS.find((tier) => tier.minPoints > currentTier.minPoints) || null;
@@ -158,7 +169,18 @@ const UserModel = {
             where: {
                 user_id: { [Op.in]: userIds }
             },
-            attributes: ["id", "user_id", "status", "total_amount"]
+            attributes: [
+                "id",
+                "user_id",
+                "status",
+                "return_status",
+                "shipping_status",
+                "subtotal",
+                "total_amount",
+                "delivered_at",
+                "completed_at",
+                "customer_received_at"
+            ]
         });
 
         const ordersByUserId = new Map();
@@ -192,7 +214,29 @@ const UserModel = {
             ]
         });
 
-        return toPlainUser(user);
+        const plainUser = toPlainUser(user);
+        if (!plainUser || plainUser.role !== "customer") return plainUser;
+
+        const orders = await Order.findAll({
+            where: { user_id: id },
+            attributes: [
+                "id",
+                "user_id",
+                "status",
+                "return_status",
+                "shipping_status",
+                "subtotal",
+                "total_amount",
+                "delivered_at",
+                "completed_at",
+                "customer_received_at"
+            ]
+        });
+
+        return decorateCustomer(
+            plainUser,
+            orders.map((order) => (order.get ? order.get({ plain: true }) : order))
+        );
     },
 
     async updateProfile(id, data) {

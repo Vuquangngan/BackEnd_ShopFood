@@ -7,7 +7,7 @@ const pid = (name = "id", desc = "ID") => ({ name, in: "path", required: true, d
 const tokenParam = { name: "token", in: "path", required: true, schema: { type: "string" } };
 const spec = {
   openapi: "3.0.3",
-  info: { title: "Garden Fresh API", version: "1.0.0", description: "Backend API documentation for the Garden Fresh grocery system." },
+  info: { title: "FOODIFI API", version: "1.0.0", description: "Backend API documentation for the FOODIFI grocery system." },
   servers: [{ url: "http://localhost:3000", description: "Local server" }],
   tags: [
     ["Auth","Registration, authentication, and session management"],

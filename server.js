@@ -1,4 +1,4 @@
-﻿const http = require("http");
+const http = require("http");
 const express = require("express");
 const path = require("path");
 const multer = require("multer");
@@ -42,7 +42,9 @@ const allowedOrigins = [
     "http://localhost:4173",
     "http://localhost:3000",
     "https://vuquangngan.github.io",
-    "https://vuquangngan.github.io/BackEnd_ShopFood"
+    "https://vuquangngan.github.io/BackEnd_ShopFood",
+    "https://admin-foodifi.vercel.app",
+    "https://fon-foodifi.vercel.app"
 ];
 
 if (process.env.FRONTEND_ORIGINS) {
@@ -60,9 +62,10 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "10mb" }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/images/sanpham", express.static(path.resolve(__dirname, "..", "..", "Images", "sanpham")));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     explorer: true,
-    customSiteTitle: "Garden Fresh API Docs"
+    customSiteTitle: "FOODIFI API Docs"
 }));
 app.get("/api-docs.json", (req, res) => {
     res.json(swaggerSpec);
@@ -324,8 +327,8 @@ async function ensureRuntimeSchema() {
             {
                 key: "store_1",
                 code: "CN-001",
-                label: "Garden Fresh 1",
-                name: "Garden Fresh 1",
+                label: "FOODIFI 1",
+                name: "FOODIFI 1",
                 manager: "Trần Văn Lý",
                 phone: "0906572167",
                 city: "Hà Nội",
@@ -339,8 +342,8 @@ async function ensureRuntimeSchema() {
             {
                 key: "store_2",
                 code: "CN-002",
-                label: "Garden Fresh 2",
-                name: "Garden Fresh 2",
+                label: "FOODIFI 2",
+                name: "FOODIFI 2",
                 manager: "Vũ Quang Ngân",
                 phone: "0916837759",
                 city: "Hà Nội",
@@ -354,8 +357,8 @@ async function ensureRuntimeSchema() {
             {
                 key: "store_3",
                 code: "CN-003",
-                label: "Garden Fresh 3",
-                name: "Garden Fresh 3",
+                label: "FOODIFI 3",
+                name: "FOODIFI 3",
                 manager: "",
                 phone: "",
                 city: "Hà Nội",
