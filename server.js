@@ -34,6 +34,7 @@ const branchImportRequestRoutes = require("./routes/branchImportRequestRoutes");
 const staffShiftRoutes = require("./routes/staffShiftRoutes");
 const emailCampaignRoutes = require("./routes/emailCampaignRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const walletRoutes = require("./routes/walletRoutes");
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -98,6 +99,7 @@ app.use("/api/branch-import-requests", branchImportRequestRoutes);
 app.use("/api/staff-shifts", staffShiftRoutes);
 app.use("/api/email-campaigns", emailCampaignRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/wallet", walletRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/api/chat", chatRoutes);
 

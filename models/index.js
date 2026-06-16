@@ -911,6 +911,32 @@ ChatMessage.belongsTo(ChatConversation, { foreignKey: "conversation_id", as: "co
 User.hasMany(ChatMessage, { foreignKey: "sender_id", as: "sent_messages", onDelete: "CASCADE" });
 ChatMessage.belongsTo(User, { foreignKey: "sender_id", as: "sender", onDelete: "CASCADE" });
 
+const WalletTransfer = sequelize.define("WalletTransfer", {
+    id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
+    user_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+    bank_name: { type: DataTypes.STRING(100), allowNull: false },
+    account_number: { type: DataTypes.STRING(30), allowNull: false },
+    account_holder: { type: DataTypes.STRING(120), allowNull: false },
+    amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+    status: {
+        type: DataTypes.ENUM("pending", "processing", "completed", "rejected"),
+        allowNull: false,
+        defaultValue: "pending"
+    },
+    note: { type: DataTypes.STRING(255) }
+}, {
+    ...commonOptions,
+    tableName: "wallet_transfers",
+    indexes: [
+        { fields: ["user_id"] },
+        { fields: ["status"] },
+        { fields: ["created_at"] }
+    ]
+});
+
+User.hasMany(WalletTransfer, { foreignKey: "user_id", as: "wallet_transfers", onDelete: "CASCADE" });
+WalletTransfer.belongsTo(User, { foreignKey: "user_id", as: "user", onDelete: "CASCADE" });
+
 module.exports = {
     sequelize,
     User,
@@ -947,5 +973,6 @@ module.exports = {
     StaffShiftAssignment,
     StaffShiftHoliday,
     ChatConversation,
-    ChatMessage
+    ChatMessage,
+    WalletTransfer
 };
