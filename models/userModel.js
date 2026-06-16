@@ -1,7 +1,7 @@
 ﻿const { Op } = require("sequelize");
 const { sequelize, Order, User, UserAddress } = require("./index");
 
-const USER_UPDATE_FIELDS = ["username", "phone", "avatar_url"];
+const USER_UPDATE_FIELDS = ["username", "email", "phone", "avatar_url"];
 const ADMIN_USER_UPDATE_FIELDS = ["username", "code", "email", "phone", "avatar_url", "role", "status", "must_change_password"];
 const ADDRESS_FIELDS = ["full_name", "phone", "address_line", "ward", "district", "city", "is_default"];
 const CUSTOMER_POINT_STEP_AMOUNT = 1000;
@@ -250,6 +250,27 @@ const UserModel = {
                 updateData[field] = data[field];
             }
         });
+
+        if (Object.prototype.hasOwnProperty.call(updateData, "email")) {
+            const normalizedEmail = String(updateData.email || "").trim().toLowerCase();
+            if (!normalizedEmail) {
+                throw new Error("Email không được để trống.");
+            }
+
+            const existingUser = await this.findByEmail(normalizedEmail);
+            if (existingUser && Number(existingUser.id) !== Number(id)) {
+                throw new Error("Email đã được sử dụng bởi tài khoản khác.");
+            }
+
+            updateData.email = normalizedEmail;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(updateData, "username")) {
+            updateData.username = String(updateData.username || "").trim();
+            if (!updateData.username) {
+                throw new Error("Họ tên không được để trống.");
+            }
+        }
 
         if (Object.keys(updateData).length) {
             await user.update(updateData);

@@ -1,5 +1,5 @@
 ﻿const { Op, literal } = require("sequelize");
-const { sequelize, Category, Product, ProductImage, ProductStoreAllocation } = require("./index");
+const { sequelize, Category, Product, ProductImage, ProductStoreAllocation, CartItem } = require("./index");
 const { addVietnameseAliases, addVietnameseLabels } = require("../utils/vietnameseLabels");
 const { applyPromotionToProduct, applyPromotionsToProducts } = require("../services/promotionPricingService");
 
@@ -971,6 +971,7 @@ const ProductModel = {
     },
 
     async remove(id) {
+        await CartItem.destroy({ where: { product_id: id } });
         const deletedRows = await Product.destroy({ where: { id } });
         return deletedRows > 0;
     }

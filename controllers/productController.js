@@ -19,7 +19,7 @@ function handleError(res, error) {
 
     if (error.name === "SequelizeForeignKeyConstraintError" || error.code === "ER_NO_REFERENCED_ROW_2") {
         return res.status(400).json(withCommonResponseAliases({
-            message: "Danh mục không tồn tại."
+            message: "Danh mục không tồn tại hoặc sản phẩm đang được tham chiếu ở nơi khác."
         }));
     }
 
