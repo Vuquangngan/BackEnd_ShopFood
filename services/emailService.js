@@ -24,6 +24,7 @@ function getTransporter() {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
         },
+        family: 4,           // Force IPv4 — Render does not support IPv6 outbound
         connectionTimeout: 10000,
         greetingTimeout: 8000,
         socketTimeout: 15000
