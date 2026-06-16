@@ -1,4 +1,4 @@
-require("dotenv").config({ quiet: true });
+﻿require("dotenv").config({ quiet: true });
 
 const nodemailer = require("nodemailer");
 
@@ -48,45 +48,27 @@ function getSmtpTransporter() {
         throw new Error("Chưa cấu hình SMTP email (EMAIL_HOST, EMAIL_USER, EMAIL_PASS).");
     }
 
-    const host = String(process.env.EMAIL_HOST || "").trim();
     const port = Number(process.env.EMAIL_PORT || 587);
-    const configuredSecure = String(process.env.EMAIL_SECURE || "false").trim().toLowerCase() === "true";
-    const isGmailHost = /gmail/i.test(host);
-    const secure = port === 465 ? true : (configuredSecure && port !== 587);
-    const authUser = String(process.env.EMAIL_USER || "").trim();
-    const smtpPassword = isGmailHost
-        ? String(process.env.EMAIL_PASS || "").replace(/\s+/g, "")
-        : String(process.env.EMAIL_PASS || "").trim();
-    const transportConfig = {
-        host,
+    const secure = String(process.env.EMAIL_SECURE || "false").trim().toLowerCase() === "true";
+
+    return nodemailer.createTransport({
+        host: String(process.env.EMAIL_HOST || "").trim(),
         port,
         secure,
         auth: {
-            user: authUser,
-            pass: smtpPassword
+            user: String(process.env.EMAIL_USER || "").trim(),
+            pass: String(process.env.EMAIL_PASS || "").trim()
         },
-        requireTLS: port === 587,
         connectionTimeout: 10000,
         greetingTimeout: 10000,
-        socketTimeout: 15000,
-        tls: {
-            minVersion: "TLSv1.2",
-            rejectUnauthorized: true
-        }
-    };
-
-    if (isGmailHost) {
-        transportConfig.service = "gmail";
-    }
-
-    return nodemailer.createTransport(transportConfig);
+        socketTimeout: 15000
+    });
 }
 
 async function sendViaSmtp({ to, subject, html, text }) {
     const transporter = getSmtpTransporter();
 
     try {
-        await transporter.verify();
         return await transporter.sendMail({
             from: getFromAddress(),
             to: Array.isArray(to) ? to.join(", ") : to,
@@ -96,19 +78,11 @@ async function sendViaSmtp({ to, subject, html, text }) {
         });
     } catch (error) {
         if (error?.code === "EAUTH") {
-            throw new Error("T�i kho?n email ho?c m?t kh?u ?ng d?ng SMTP kh�ng d�ng.");
-        }
-
-        if (error?.code === "EENVELOPE") {
-            throw new Error("Dia chi email gui hoac nhan khong hop le.");
+            throw new Error("Tài khoản email hoặc mật khẩu ứng dụng SMTP không đúng.");
         }
 
         if (["ETIMEDOUT", "ESOCKET", "ECONNECTION", "ECONNRESET"].includes(String(error?.code || ""))) {
-            throw new Error("K?t n?i t?i m�y ch? email qu� l�u. Vui l�ng th? l?i sau.");
-        }
-
-        if (String(error?.response || "").includes("Application-specific password required")) {
-            throw new Error("Gmail yeu cau App Password. Hay tao lai App Password 16 ky tu va cap nhat EMAIL_PASS.");
+            throw new Error(" Vui lòng thử lại sau.");
         }
 
         throw error;
@@ -346,7 +320,5 @@ module.exports = {
     sendWeeklyShiftScheduleEmail,
     sendCampaignEmail
 };
-
-
 
 
