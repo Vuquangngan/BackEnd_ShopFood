@@ -1,14 +1,38 @@
 require("dotenv").config({ quiet: true });
 
+const nodemailer = require("nodemailer");
+
+let smtpTransporter = null;
+
+function hasSmtpConfig() {
+    return Boolean(
+        String(process.env.EMAIL_HOST || "").trim() &&
+        String(process.env.EMAIL_USER || "").trim() &&
+        String(process.env.EMAIL_PASS || "").trim()
+    );
+}
+
+function hasResendConfig() {
+    return Boolean(
+        String(process.env.RESEND_API_KEY || "").trim() ||
+        (!hasSmtpConfig() && String(process.env.EMAIL_PASS || "").trim())
+    );
+}
+
 function getResendApiKey() {
-    const key = process.env.EMAIL_PASS || "";
-    if (!key) throw new Error("Chưa cấu hình Resend API key (EMAIL_PASS).");
+    const key = String(process.env.RESEND_API_KEY || "").trim()
+        || (!hasSmtpConfig() ? String(process.env.EMAIL_PASS || "").trim() : "");
+
+    if (!key) {
+        throw new Error("Chưa cấu hình RESEND_API_KEY cho dịch vụ gửi email.");
+    }
+
     return key;
 }
 
 function getFromAddress() {
-    const name = process.env.EMAIL_FROM_NAME || "FOODIFI";
-    const address = process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
+    const name = String(process.env.EMAIL_FROM_NAME || "FOODIFI").trim() || "FOODIFI";
+    const address = String(process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || "onboarding@resend.dev").trim();
     return `${name} <${address}>`;
 }
 
@@ -21,12 +45,46 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function getSmtpTransporter() {
+    if (!hasSmtpConfig()) {
+        throw new Error("Chưa cấu hình SMTP email (EMAIL_HOST, EMAIL_USER, EMAIL_PASS).");
+    }
+
+    if (!smtpTransporter) {
+        const port = Number(process.env.EMAIL_PORT || 587);
+        const secure = String(process.env.EMAIL_SECURE || "false").trim().toLowerCase() === "true";
+
+        smtpTransporter = nodemailer.createTransport({
+            host: String(process.env.EMAIL_HOST || "").trim(),
+            port,
+            secure,
+            auth: {
+                user: String(process.env.EMAIL_USER || "").trim(),
+                pass: String(process.env.EMAIL_PASS || "").trim()
+            }
+        });
+    }
+
+    return smtpTransporter;
+}
+
+async function sendViaSmtp({ to, subject, html, text }) {
+    const transporter = getSmtpTransporter();
+    return transporter.sendMail({
+        from: getFromAddress(),
+        to: Array.isArray(to) ? to.join(", ") : to,
+        subject,
+        html,
+        text
+    });
+}
+
 async function sendViaResend({ to, subject, html, text }) {
     const apiKey = getResendApiKey();
     const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
-            "Authorization": `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -46,10 +104,24 @@ async function sendViaResend({ to, subject, html, text }) {
     return res.json();
 }
 
+async function sendEmail(payload) {
+    if (hasSmtpConfig()) {
+        return sendViaSmtp(payload);
+    }
+
+    if (hasResendConfig()) {
+        return sendViaResend(payload);
+    }
+
+    throw new Error(
+        "Chưa cấu hình dịch vụ gửi email. Hãy thiết lập SMTP (EMAIL_HOST, EMAIL_USER, EMAIL_PASS) hoặc RESEND_API_KEY."
+    );
+}
+
 async function sendForgotPasswordEmail({ to, username, temporaryPassword }) {
     const displayName = username || "bạn";
 
-    await sendViaResend({
+    await sendEmail({
         to,
         subject: "Mật khẩu tạm thời từ hệ thống FOODIFI",
         text: [
@@ -64,9 +136,9 @@ async function sendForgotPasswordEmail({ to, username, temporaryPassword }) {
         html: `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
                 <h2>FOODIFI</h2>
-                <p>Xin chào <strong>${displayName}</strong>,</p>
+                <p>Xin chào <strong>${escapeHtml(displayName)}</strong>,</p>
                 <p>Hệ thống đã tạo một <strong>mật khẩu tạm thời</strong> cho tài khoản của bạn.</p>
-                <p style="font-size:18px"><strong>${temporaryPassword}</strong></p>
+                <p style="font-size:18px"><strong>${escapeHtml(temporaryPassword)}</strong></p>
                 <p>Vui lòng đăng nhập lại và đổi mật khẩu ngay sau khi vào hệ thống.</p>
                 <p>Nếu bạn không yêu cầu thao tác này, vui lòng liên hệ quản trị viên.</p>
             </div>
@@ -85,7 +157,7 @@ async function sendShiftRegistrationEmail({
 }) {
     const displayName = username || "bạn";
 
-    await sendViaResend({
+    await sendEmail({
         to,
         subject: `Lịch làm việc đã được xác nhận - ${shiftName}`,
         text: [
@@ -102,13 +174,13 @@ async function sendShiftRegistrationEmail({
         html: `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
                 <h2>FOODIFI</h2>
-                <p>Xin chào <strong>${displayName}</strong>,</p>
+                <p>Xin chào <strong>${escapeHtml(displayName)}</strong>,</p>
                 <p>Quản lý đã xác nhận ca làm việc của bạn.</p>
                 <table cellpadding="8" cellspacing="0" style="border-collapse:collapse">
-                    <tr><td><strong>Chi nhánh</strong></td><td>${branchName}</td></tr>
-                    <tr><td><strong>Ca làm</strong></td><td>${shiftName}</td></tr>
-                    <tr><td><strong>Ngày làm</strong></td><td>${shiftDateLabel}</td></tr>
-                    <tr><td><strong>Thời gian</strong></td><td>${startTime} - ${endTime}</td></tr>
+                    <tr><td><strong>Chi nhánh</strong></td><td>${escapeHtml(branchName)}</td></tr>
+                    <tr><td><strong>Ca làm</strong></td><td>${escapeHtml(shiftName)}</td></tr>
+                    <tr><td><strong>Ngày làm</strong></td><td>${escapeHtml(shiftDateLabel)}</td></tr>
+                    <tr><td><strong>Thời gian</strong></td><td>${escapeHtml(startTime)} - ${escapeHtml(endTime)}</td></tr>
                 </table>
                 <p style="margin-top:16px">Vui lòng sắp xếp thời gian để có mặt đúng giờ.</p>
             </div>
@@ -125,16 +197,16 @@ async function sendWeeklyShiftScheduleEmail({
     const displayName = username || "bạn";
     const scheduleRows = schedules.map((item) => (
         `<tr>
-            <td style="border:1px solid #dfe8dd;padding:8px">${item.shiftDateLabel}</td>
-            <td style="border:1px solid #dfe8dd;padding:8px">${item.shiftName}</td>
-            <td style="border:1px solid #dfe8dd;padding:8px">${item.startTime} - ${item.endTime}</td>
+            <td style="border:1px solid #dfe8dd;padding:8px">${escapeHtml(item.shiftDateLabel)}</td>
+            <td style="border:1px solid #dfe8dd;padding:8px">${escapeHtml(item.shiftName)}</td>
+            <td style="border:1px solid #dfe8dd;padding:8px">${escapeHtml(item.startTime)} - ${escapeHtml(item.endTime)}</td>
         </tr>`
     )).join("");
     const scheduleText = schedules.map((item) => (
         `- ${item.shiftDateLabel}: ${item.shiftName} (${item.startTime} - ${item.endTime})`
     )).join("\n");
 
-    await sendViaResend({
+    await sendEmail({
         to,
         subject: `Lịch làm việc tuần đã được xác nhận - ${branchName}`,
         text: [
@@ -150,8 +222,8 @@ async function sendWeeklyShiftScheduleEmail({
         html: `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
                 <h2>FOODIFI</h2>
-                <p>Xin chào <strong>${displayName}</strong>,</p>
-                <p>Quản lý đã xác nhận lịch làm việc trong tuần của bạn tại <strong>${branchName}</strong>.</p>
+                <p>Xin chào <strong>${escapeHtml(displayName)}</strong>,</p>
+                <p>Quản lý đã xác nhận lịch làm việc trong tuần của bạn tại <strong>${escapeHtml(branchName)}</strong>.</p>
                 <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:640px">
                     <thead>
                         <tr>
@@ -187,10 +259,11 @@ async function sendCampaignEmail({
     const safeCtaLabel = String(ctaLabel || "Xem ngay").trim();
     const safeCtaUrl = String(ctaUrl || "").trim();
     const rawBannerUrl = String(bannerUrl || "").trim();
-    const BASE_URL = (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
-    const safeBannerUrl = rawBannerUrl && rawBannerUrl.startsWith("/") && BASE_URL
-        ? `${BASE_URL}${rawBannerUrl}`
+    const baseUrl = String(process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_BASE_URL || "").replace(/\/$/, "");
+    const safeBannerUrl = rawBannerUrl && rawBannerUrl.startsWith("/") && baseUrl
+        ? `${baseUrl}${rawBannerUrl}`
         : rawBannerUrl;
+
     const buttonHtml = safeCtaUrl
         ? `<p style="margin:24px 0"><a href="${escapeHtml(safeCtaUrl)}" style="display:inline-block;background:#0d8748;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700">${escapeHtml(safeCtaLabel)}</a></p>`
         : "";
@@ -198,7 +271,7 @@ async function sendCampaignEmail({
         ? `<img src="${escapeHtml(safeBannerUrl)}" alt="${escapeHtml(campaignName || "FOODIFI")}" style="width:100%;max-width:640px;border-radius:18px;display:block;margin:0 0 22px">`
         : "";
 
-    await sendViaResend({
+    await sendEmail({
         to,
         subject: safeSubject,
         text: [
