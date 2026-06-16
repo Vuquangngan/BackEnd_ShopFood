@@ -883,6 +883,33 @@ async function ensureRuntimeSchema() {
         allowNull: false
     });
 
+    if (!existingTables.includes("wallet_transfers")) {
+        await queryInterface.createTable("wallet_transfers", {
+            id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true, allowNull: false },
+            user_id: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                allowNull: false,
+                references: { model: "users", key: "id" },
+                onUpdate: "CASCADE",
+                onDelete: "CASCADE"
+            },
+            bank_name: { type: DataTypes.STRING(100), allowNull: false },
+            account_number: { type: DataTypes.STRING(30), allowNull: false },
+            account_holder: { type: DataTypes.STRING(120), allowNull: false },
+            amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+            status: {
+                type: DataTypes.ENUM("pending", "processing", "completed", "rejected"),
+                allowNull: false,
+                defaultValue: "pending"
+            },
+            note: { type: DataTypes.STRING(255), allowNull: true },
+            created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") },
+            updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+        });
+        await queryInterface.addIndex("wallet_transfers", ["user_id"], { name: "wallet_transfers_user_id_idx" });
+        await queryInterface.addIndex("wallet_transfers", ["status"], { name: "wallet_transfers_status_idx" });
+    }
+
     const paymentTable = await queryInterface.describeTable("payment_transactions");
     if (!paymentTable.gateway_reference) {
         await queryInterface.addColumn("payment_transactions", "gateway_reference", {
