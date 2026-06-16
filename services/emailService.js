@@ -116,7 +116,42 @@ async function sendViaResend({ to, subject, html, text }) {
     return res.json();
 }
 
+async function sendViaBrevo({ to, subject, html, text }) {
+    const apiKey = String(process.env.BREVO_API_KEY || "").trim();
+    if (!apiKey) throw new Error("Chưa cấu hình BREVO_API_KEY.");
+
+    const name = String(process.env.EMAIL_FROM_NAME || "FOODIFI").trim();
+    const email = String(process.env.EMAIL_FROM_ADDRESS || "vuquangngan312@gmail.com").trim();
+    const recipients = (Array.isArray(to) ? to : [to]).map((e) => ({ email: e }));
+
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            sender: { name, email },
+            to: recipients,
+            subject,
+            htmlContent: html,
+            textContent: text
+        })
+    });
+
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(`Brevo API error ${res.status}: ${errData.message || res.statusText}`);
+    }
+
+    return res.json();
+}
+
 async function sendEmail(payload) {
+    if (String(process.env.BREVO_API_KEY || "").trim()) {
+        return sendViaBrevo(payload);
+    }
+
     if (hasSmtpConfig()) {
         return sendViaSmtp(payload);
     }
@@ -126,7 +161,7 @@ async function sendEmail(payload) {
     }
 
     throw new Error(
-        "Chưa cấu hình dịch vụ gửi email. Hãy thiết lập SMTP (EMAIL_HOST, EMAIL_USER, EMAIL_PASS) hoặc RESEND_API_KEY."
+        "Chưa cấu hình dịch vụ gửi email. Hãy thiết lập BREVO_API_KEY, SMTP hoặc RESEND_API_KEY."
     );
 }
 
