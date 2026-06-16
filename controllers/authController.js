@@ -282,7 +282,7 @@ exports.forgotPassword = async (req, res) => {
 
         const user = await User.findByEmail(email);
         const genericSuccess = withCommonResponseAliases({
-            message: "Nếu email tồn tại, hệ thống sẽ gửi mật khẩu tạm thời tới hộp thư của bạn."
+            message: "Hệ thống đã gửi mật khẩu tạm thời tới hộp thư của bạn."
         });
 
         if (!user) {
