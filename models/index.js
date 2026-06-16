@@ -976,3 +976,7 @@ module.exports = {
     ChatMessage,
     WalletTransfer
 };
+sation,
+    ChatMessage,
+    WalletTransfer
+};
