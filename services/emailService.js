@@ -23,7 +23,10 @@ function getTransporter() {
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
-        }
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 8000,
+        socketTimeout: 15000
     });
 
     return transporter;
