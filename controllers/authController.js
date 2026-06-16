@@ -313,6 +313,7 @@ exports.forgotPassword = async (req, res) => {
 
         return res.json(genericSuccess);
     } catch (error) {
+        console.error("[forgotPassword] SMTP error:", error.message, error.code, error.command);
         return res.status(500).json(withCommonResponseAliases({
             message: error.message || "Không thể gửi email lấy lại mật khẩu vào lúc này."
         }));
