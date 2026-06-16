@@ -15,8 +15,10 @@ function toPublicUrl(req, file, asset) {
     const folder = req.uploadFolder || "general";
     const relativeUrl = asset?.id ? `/api/uploads/assets/${asset.id}` : `/uploads/${folder}/${file.filename}`;
 
+    // On Render (behind HTTPS proxy), req.protocol returns "http" — force https in production
+    const protocol = process.env.NODE_ENV === "production" || process.env.RENDER ? "https" : req.protocol;
     return {
-        url: `${req.protocol}://${req.get("host")}${relativeUrl}`,
+        url: `${protocol}://${req.get("host")}${relativeUrl}`,
         relativeUrl,
         folder
     };
