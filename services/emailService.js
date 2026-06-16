@@ -192,7 +192,12 @@ async function sendCampaignEmail({
     const safeSummary = String(summary || "").trim();
     const safeCtaLabel = String(ctaLabel || "Xem ngay").trim();
     const safeCtaUrl = String(ctaUrl || "").trim();
-    const safeBannerUrl = String(bannerUrl || "").trim();
+    const rawBannerUrl = String(bannerUrl || "").trim();
+    // Convert relative paths to absolute URLs so email clients (Gmail etc.) can load images
+    const BASE_URL = (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
+    const safeBannerUrl = rawBannerUrl && rawBannerUrl.startsWith("/") && BASE_URL
+        ? `${BASE_URL}${rawBannerUrl}`
+        : rawBannerUrl;
     const buttonHtml = safeCtaUrl
         ? `<p style="margin:24px 0"><a href="${escapeHtml(safeCtaUrl)}" style="display:inline-block;background:#0d8748;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700">${escapeHtml(safeCtaLabel)}</a></p>`
         : "";
