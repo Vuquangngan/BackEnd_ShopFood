@@ -1,43 +1,15 @@
-const nodemailer = require("nodemailer");
-
 require("dotenv").config({ quiet: true });
 
-let transporter;
-
-function isSecureConnection() {
-    const rawValue = String(process.env.EMAIL_SECURE || "false").toLowerCase();
-    return rawValue === "true" || rawValue === "1" || rawValue === "yes";
-}
-
-function getTransporter() {
-    if (transporter) return transporter;
-
-    if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        throw new Error("Chức năng gửi email chưa được cấu hình. Vui lòng bổ sung EMAIL_HOST, EMAIL_PORT, EMAIL_USER và EMAIL_PASS trong file .env.");
-    }
-
-    transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT),
-        secure: isSecureConnection(),
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        },
-        family: 4,           // Force IPv4 — Render does not support IPv6 outbound
-        connectionTimeout: 10000,
-        greetingTimeout: 8000,
-        socketTimeout: 15000
-    });
-
-    return transporter;
+function getResendApiKey() {
+    const key = process.env.EMAIL_PASS || "";
+    if (!key) throw new Error("Chưa cấu hình Resend API key (EMAIL_PASS).");
+    return key;
 }
 
 function getFromAddress() {
-    return {
-        name: process.env.EMAIL_FROM_NAME || "FOODIFI",
-        address: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER
-    };
+    const name = process.env.EMAIL_FROM_NAME || "FOODIFI";
+    const address = process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
+    return `${name} <${address}>`;
 }
 
 function escapeHtml(value) {
@@ -49,12 +21,35 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+async function sendViaResend({ to, subject, html, text }) {
+    const apiKey = getResendApiKey();
+    const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            from: getFromAddress(),
+            to: Array.isArray(to) ? to : [to],
+            subject,
+            html,
+            text
+        })
+    });
+
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(`Resend API error ${res.status}: ${errData.message || res.statusText}`);
+    }
+
+    return res.json();
+}
+
 async function sendForgotPasswordEmail({ to, username, temporaryPassword }) {
-    const mailer = getTransporter();
     const displayName = username || "bạn";
 
-    await mailer.sendMail({
-        from: getFromAddress(),
+    await sendViaResend({
         to,
         subject: "Mật khẩu tạm thời từ hệ thống FOODIFI",
         text: [
@@ -88,11 +83,9 @@ async function sendShiftRegistrationEmail({
     startTime,
     endTime
 }) {
-    const mailer = getTransporter();
     const displayName = username || "bạn";
 
-    await mailer.sendMail({
-        from: getFromAddress(),
+    await sendViaResend({
         to,
         subject: `Lịch làm việc đã được xác nhận - ${shiftName}`,
         text: [
@@ -129,7 +122,6 @@ async function sendWeeklyShiftScheduleEmail({
     branchName,
     schedules = []
 }) {
-    const mailer = getTransporter();
     const displayName = username || "bạn";
     const scheduleRows = schedules.map((item) => (
         `<tr>
@@ -142,8 +134,7 @@ async function sendWeeklyShiftScheduleEmail({
         `- ${item.shiftDateLabel}: ${item.shiftName} (${item.startTime} - ${item.endTime})`
     )).join("\n");
 
-    await mailer.sendMail({
-        from: getFromAddress(),
+    await sendViaResend({
         to,
         subject: `Lịch làm việc tuần đã được xác nhận - ${branchName}`,
         text: [
@@ -189,7 +180,6 @@ async function sendCampaignEmail({
     bannerUrl,
     campaignName
 }) {
-    const mailer = getTransporter();
     const displayName = username || "bạn";
     const safeSubject = String(subject || "").trim();
     const safeTitle = String(title || campaignName || "FOODIFI").trim();
@@ -197,7 +187,6 @@ async function sendCampaignEmail({
     const safeCtaLabel = String(ctaLabel || "Xem ngay").trim();
     const safeCtaUrl = String(ctaUrl || "").trim();
     const rawBannerUrl = String(bannerUrl || "").trim();
-    // Convert relative paths to absolute URLs so email clients (Gmail etc.) can load images
     const BASE_URL = (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
     const safeBannerUrl = rawBannerUrl && rawBannerUrl.startsWith("/") && BASE_URL
         ? `${BASE_URL}${rawBannerUrl}`
@@ -209,8 +198,7 @@ async function sendCampaignEmail({
         ? `<img src="${escapeHtml(safeBannerUrl)}" alt="${escapeHtml(campaignName || "FOODIFI")}" style="width:100%;max-width:640px;border-radius:18px;display:block;margin:0 0 22px">`
         : "";
 
-    await mailer.sendMail({
-        from: getFromAddress(),
+    await sendViaResend({
         to,
         subject: safeSubject,
         text: [
