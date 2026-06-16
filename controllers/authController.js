@@ -1,4 +1,4 @@
-const { randomInt } = require("crypto");
+﻿const { randomInt } = require("crypto");
 const bcrypt = require("bcryptjs");
 const { randomBytes } = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
@@ -48,8 +48,8 @@ function buildResponseUser(user) {
         diem_tich_luy: user.loyalty_points || 0,
         points: user.loyalty_points || 0,
         membership_tier: user.membership_tier || "dong",
-        membership_tier_label: user.membership_tier_label || "�?ng",
-        hang_thanh_vien_hien_thi: user.membership_tier_label || "�?ng",
+        membership_tier_label: user.membership_tier_label || "dong",
+        hang_thanh_vien_hien_thi: user.membership_tier_label || "Đồng",
         completed_orders_count: user.completed_orders_count || 0,
         so_don_hoan_thanh: user.completed_orders_count || 0
     });
@@ -61,7 +61,7 @@ async function buildAuthPayload(user, req) {
     const responseUser = await User.getProfile(user.id) || user;
 
     return withCommonResponseAliases({
-        message: "�ang nh?p th�nh c�ng.",
+        message: "Đăng nhập thành công.",
         token: accessToken,
         access_token: accessToken,
         refresh_token: refreshSession.refresh_token,
@@ -113,14 +113,14 @@ exports.register = async (req, res) => {
 
         if (!username || !email || !password) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui l�ng nh?p d?y d? t�n ngu?i d�ng, email v� m?t kh?u."
+                message: "Vui lòng nhập đầy đủ tên người dùng, email và mật khẩu."
             }));
         }
 
         const existingUser = await User.findByEmail(email);
         if (existingUser) {
             return res.status(409).json(withCommonResponseAliases({
-                message: "Email d� t?n t?i."
+                message: "Email đã tồn tại."
             }));
         }
 
@@ -128,12 +128,12 @@ exports.register = async (req, res) => {
         const user = await User.createUser(username, email, hashedPassword);
 
         return res.status(201).json(withCommonResponseAliases({
-            message: "�ang k� th�nh c�ng.",
+            message: "ang k thnh cng.",
             user: buildResponseUser(user)
         }));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "�� x?y ra l?i."
+            message: error.message || "Xảy ra lỗi hệ thống."
         }));
     }
 };
@@ -145,28 +145,28 @@ exports.login = async (req, res) => {
 
         if (!email || !password) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui l�ng nh?p email v� m?t kh?u."
+                message: "Vui lòng nhập email và mật khẩu."
             }));
         }
 
         const user = await User.findByEmail(email);
         if (!user) {
             return res.status(404).json(withCommonResponseAliases({
-                message: "Kh�ng t�m th?y ngu?i d�ng."
+                message: "Không tìm thấy người dùng."
             }));
         }
 
         const isMatch = bcrypt.compareSync(password, user.password);
         if (!isMatch) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "M?t kh?u kh�ng d�ng."
+                message: "Mật khẩu không đúng."
             }));
         }
 
         return res.json(await buildAuthPayload(user, req));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "�� x?y ra l?i."
+            message: error.message || "Lỗi hệ thống."
         }));
     }
 };
@@ -220,21 +220,21 @@ exports.refreshToken = async (req, res) => {
 
         if (!refreshToken) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui l�ng g?i refresh token d? l�m m?i phi�n dang nh?p."
+                message: "Vui lòng gửi refresh token để làm mới phiên đăng nhập."
             }));
         }
 
         const rotated = await rotateRefreshSession(refreshToken, buildClientMeta(req));
         if (!rotated) {
             return res.status(401).json(withCommonResponseAliases({
-                message: "Refresh token kh�ng h?p l? ho?c d� h?t h?n."
+                message: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn."
             }));
         }
 
         const accessToken = generateAccessToken(rotated.user);
 
         return res.json(withCommonResponseAliases({
-            message: "�ang nh?p th�nh c�ng.",
+            message: "Đăng nhập thành công.",
             token: accessToken,
             access_token: accessToken,
             refresh_token: rotated.refresh_token,
@@ -243,7 +243,7 @@ exports.refreshToken = async (req, res) => {
         }));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "Kh�ng th? dang nh?p v�o l�c n�y."
+            message: error.message || "Không thể làm mới phiên đăng nhập vào lúc này."
         }));
     }
 };
@@ -254,18 +254,18 @@ exports.logout = async (req, res) => {
 
         if (!refreshToken) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui l�ng g?i refresh token d? dang xu?t phi�n hi?n t?i."
+                message: "Vui lòng gửi refresh token để đăng xuất phiên hiện tại."
             }));
         }
 
         await revokeRefreshSession(refreshToken);
 
         return res.json(withCommonResponseAliases({
-            message: "�ang xu?t th�nh c�ng."
+            message: "Đăng xuất thành công."
         }));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "Kh�ng th? dang xu?t v�o l�c n�y."
+            message: error.message || "Khôg thể đăng xuất vào lúc này."
         }));
     }
 };
@@ -276,13 +276,13 @@ exports.forgotPassword = async (req, res) => {
 
         if (!email) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui l�ng nh?p email d? l?y l?i m?t kh?u."
+                message: "Vui lòng nhập email để lấy lại mật khẩu."
             }));
         }
 
         const user = await User.findByEmail(email);
         const genericSuccess = withCommonResponseAliases({
-            message: "N?u email t?n t?i, h? th?ng s? g?i m?t kh?u t?m th?i t?i h?p thu c?a b?n."
+            message: "Nếu email tồn tại, hệ thống sẽ gửi mật khẩu tạm thời tới hộp thư của bạn."
         });
 
         if (!user) {
@@ -315,7 +315,7 @@ exports.forgotPassword = async (req, res) => {
     } catch (error) {
         console.error("[forgotPassword] SMTP error:", error.message, error.code, error.command);
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "Kh�ng th? g?i email l?y l?i m?t kh?u v�o l�c n�y."
+            message: error.message || "Không thể gửi email lấy lại mật khẩu vào lúc này."
         }));
     }
 };
@@ -326,27 +326,27 @@ exports.changePassword = [authenticate, async (req, res) => {
 
         if (!current_password || !new_password) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "Vui l�ng nh?p m?t kh?u hi?n t?i v� m?t kh?u m?i."
+                message: "Vui lòng nhập mật khẩu hiện tại và mật khẩu mới."
             }));
         }
 
         if (String(new_password).length < 6) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "M?t kh?u m?i ph?i c� �t nh?t 6 k� t?."
+                message: "Mật khẩu mới phải có ít nhất 6 ký tự."
             }));
         }
 
         const user = await User.findById(req.user.id);
         if (!user) {
             return res.status(404).json(withCommonResponseAliases({
-                message: "Kh�ng t�m th?y ngu?i d�ng."
+                message: "Không tìm thấy người dùng."
             }));
         }
 
         const isMatch = bcrypt.compareSync(current_password, user.password);
         if (!isMatch) {
             return res.status(400).json(withCommonResponseAliases({
-                message: "M?t kh?u hi?n t?i kh�ng d�ng."
+                message: "Mật khẩu hiện tại không đúng."
             }));
         }
 
@@ -357,11 +357,11 @@ exports.changePassword = [authenticate, async (req, res) => {
         await revokeAllUserSessions(user.id);
 
         return res.json(withCommonResponseAliases({
-            message: "�?i m?t kh?u th�nh c�ng. Vui l�ng dang nh?p l?i tr�n c�c thi?t b?."
+            message: "Đổi mật khẩu thành công. Vui lòng đăng nhập lại trên các thiết bị."
         }));
     } catch (error) {
         return res.status(500).json(withCommonResponseAliases({
-            message: error.message || "�� x?y ra l?i m�y ch?."
+            message: error.message || "Đã xảy ra lỗi máy chủ."
         }));
     }
 }];

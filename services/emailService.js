@@ -48,27 +48,45 @@ function getSmtpTransporter() {
         throw new Error("ChÆ°a cáº¥u hÃ¬nh SMTP email (EMAIL_HOST, EMAIL_USER, EMAIL_PASS).");
     }
 
+    const host = String(process.env.EMAIL_HOST || "").trim();
     const port = Number(process.env.EMAIL_PORT || 587);
-    const secure = String(process.env.EMAIL_SECURE || "false").trim().toLowerCase() === "true";
-
-    return nodemailer.createTransport({
-        host: String(process.env.EMAIL_HOST || "").trim(),
+    const configuredSecure = String(process.env.EMAIL_SECURE || "false").trim().toLowerCase() === "true";
+    const isGmailHost = /gmail/i.test(host);
+    const secure = port === 465 ? true : (configuredSecure && port !== 587);
+    const authUser = String(process.env.EMAIL_USER || "").trim();
+    const smtpPassword = isGmailHost
+        ? String(process.env.EMAIL_PASS || "").replace(/\s+/g, "")
+        : String(process.env.EMAIL_PASS || "").trim();
+    const transportConfig = {
+        host,
         port,
         secure,
         auth: {
-            user: String(process.env.EMAIL_USER || "").trim(),
-            pass: String(process.env.EMAIL_PASS || "").trim()
+            user: authUser,
+            pass: smtpPassword
         },
+        requireTLS: port === 587,
         connectionTimeout: 10000,
         greetingTimeout: 10000,
-        socketTimeout: 15000
-    });
+        socketTimeout: 15000,
+        tls: {
+            minVersion: "TLSv1.2",
+            rejectUnauthorized: true
+        }
+    };
+
+    if (isGmailHost) {
+        transportConfig.service = "gmail";
+    }
+
+    return nodemailer.createTransport(transportConfig);
 }
 
 async function sendViaSmtp({ to, subject, html, text }) {
     const transporter = getSmtpTransporter();
 
     try {
+        await transporter.verify();
         return await transporter.sendMail({
             from: getFromAddress(),
             to: Array.isArray(to) ? to.join(", ") : to,
@@ -78,11 +96,19 @@ async function sendViaSmtp({ to, subject, html, text }) {
         });
     } catch (error) {
         if (error?.code === "EAUTH") {
-            throw new Error("Tài kho?n email ho?c m?t kh?u ?ng d?ng SMTP không dúng.");
+            throw new Error("Tï¿½i kho?n email ho?c m?t kh?u ?ng d?ng SMTP khï¿½ng dï¿½ng.");
+        }
+
+        if (error?.code === "EENVELOPE") {
+            throw new Error("Dia chi email gui hoac nhan khong hop le.");
         }
 
         if (["ETIMEDOUT", "ESOCKET", "ECONNECTION", "ECONNRESET"].includes(String(error?.code || ""))) {
-            throw new Error("K?t n?i t?i máy ch? email quá lâu. Vui lòng th? l?i sau.");
+            throw new Error("K?t n?i t?i mï¿½y ch? email quï¿½ lï¿½u. Vui lï¿½ng th? l?i sau.");
+        }
+
+        if (String(error?.response || "").includes("Application-specific password required")) {
+            throw new Error("Gmail yeu cau App Password. Hay tao lai App Password 16 ky tu va cap nhat EMAIL_PASS.");
         }
 
         throw error;
@@ -320,5 +346,7 @@ module.exports = {
     sendWeeklyShiftScheduleEmail,
     sendCampaignEmail
 };
+
+
 
 
