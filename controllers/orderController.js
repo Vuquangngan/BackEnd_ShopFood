@@ -236,9 +236,10 @@ exports.updateStatus = async (req, res) => {
                 !["completed", "cancelled"].includes(currentOrder.status) &&
                 !currentOrder.return_status &&
                 !["picked_up", "delivering", "delivered"].includes(currentOrder.shipping_status);
+            const handedToDriver = ["picked_up", "delivering", "delivered"].includes(currentOrder.shipping_status);
             const canConfirmOwnCompletedOrder =
                 currentOrder.status === "shipping" &&
-                !!currentOrder.delivered_at &&
+                (!!currentOrder.delivered_at || handedToDriver) &&
                 !currentOrder.return_status &&
                 !currentOrder.customer_received_at &&
                 action === "confirm_received";
