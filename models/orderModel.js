@@ -142,9 +142,15 @@ function localizeCoupon(coupon) {
 function localizeOrderItem(item) {
     if (!item) return null;
 
-    return addVietnameseAliases(item, {
+    const withImage = {
+        ...item,
+        product_image: item.product ? item.product.image_url : (item.product_image || null)
+    };
+
+    return addVietnameseAliases(withImage, {
         product_id: "ma_san_pham",
         product_name: "ten_san_pham",
+        product_image: "anh_san_pham",
         unit_price: "don_gia",
         quantity: "so_luong",
         line_total: "thanh_tien",
@@ -373,7 +379,14 @@ const OrderModel = {
                     model: OrderItem,
                     as: "items",
                     separate: true,
-                    order: [["id", "ASC"]]
+                    order: [["id", "ASC"]],
+                    include: [
+                        {
+                            model: Product,
+                            as: "product",
+                            attributes: ["id", "image_url"]
+                        }
+                    ]
                 }
             ],
             order: [["created_at", "DESC"]]
@@ -405,7 +418,14 @@ const OrderModel = {
                     model: OrderItem,
                     as: "items",
                     separate: true,
-                    order: [["id", "ASC"]]
+                    order: [["id", "ASC"]],
+                    include: [
+                        {
+                            model: Product,
+                            as: "product",
+                            attributes: ["id", "image_url"]
+                        }
+                    ]
                 }
             ]
         });
