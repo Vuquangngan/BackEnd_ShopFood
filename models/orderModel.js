@@ -144,7 +144,7 @@ function localizeOrderItem(item) {
 
     const withImage = {
         ...item,
-        product_image: item.product ? item.product.image_url : (item.product_image || null)
+        product_image: item.product ? item.product.thumbnail_url : (item.product_image || null)
     };
 
     return addVietnameseAliases(withImage, {
@@ -384,7 +384,7 @@ const OrderModel = {
                         {
                             model: Product,
                             as: "product",
-                            attributes: ["id", "image_url"]
+                            attributes: ["id", "thumbnail_url"]
                         }
                     ]
                 }
@@ -423,7 +423,7 @@ const OrderModel = {
                         {
                             model: Product,
                             as: "product",
-                            attributes: ["id", "image_url"]
+                            attributes: ["id", "thumbnail_url"]
                         }
                     ]
                 }
