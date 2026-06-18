@@ -54,7 +54,7 @@ async function buildShopContext() {
             where: {
                 status: { [Op.ne]: "archived" }
             },
-            attributes: ["name", "sku", "price", "sale_price", "stock_quantity", "stock_unit", "short_description", "is_published", "status"],
+            attributes: ["name", "price", "sale_price", "stock_quantity", "stock_unit", "short_description", "is_published", "status"],
             include: [{ model: Category, as: "category", attributes: ["name"] }],
             order: [["updated_at", "DESC"]],
             limit: 30
@@ -82,7 +82,7 @@ async function buildShopContext() {
                         {
                             model: Product,
                             as: "product",
-                            attributes: ["name", "sku"]
+                            attributes: ["name"]
                         }
                     ]
                 },
@@ -116,7 +116,7 @@ async function buildShopContext() {
         ...products.map((item) => {
             const price = Number(item.sale_price || item.price || 0);
             const stock = Number(item.stock_quantity || 0);
-            return `- ${item.name} (${item.sku || "không SKU"}), danh mục ${item.category?.name || "khác"}, giá ${price}đ, tồn ${stock} ${item.stock_unit || ""}, trạng thái ${item.status || ""}. ${item.short_description || ""}`;
+            return `- ${item.name}, danh mục ${item.category?.name || "khác"}, giá ${price}đ, tồn ${stock} ${item.stock_unit || ""}, trạng thái ${item.status || ""}. ${item.short_description || ""}`;
         }),
         "Công thức:",
         ...recipes.map((item) => `- ${item.title}: ${item.description || ""} (${item.difficulty || "dễ"}, ${Number(item.prep_time_minutes || 0) + Number(item.cook_time_minutes || 0)} phút)`),
@@ -218,7 +218,8 @@ exports.askSupport = async (req, res) => {
             "Bạn là trợ lý AI của FOODIFI, một ứng dụng bán thực phẩm tươi, công thức nấu ăn và quản lý đơn hàng.",
             "Trả lời bằng tiếng Việt có dấu, thân thiện, ngắn gọn, ưu tiên hướng dẫn rõ từng bước.",
             "Nếu người dùng hỏi về đơn hàng cá nhân, thanh toán, hoàn tiền hoặc thông tin riêng tư mà bạn không có dữ liệu cụ thể, hãy hướng dẫn họ liên hệ nhân viên hỗ trợ trong app.",
-            "Không bịa tồn kho, giá, voucher hoặc chính sách nếu dữ liệu không có trong phần ngữ cảnh."
+            "Không bịa tồn kho, giá, voucher hoặc chính sách nếu dữ liệu không có trong phần ngữ cảnh.",
+            "Khi nhắc đến sản phẩm/nguyên liệu, chỉ ghi TÊN sản phẩm. Tuyệt đối KHÔNG hiển thị mã SKU, mã code, ID, hoặc bất kỳ định danh kỹ thuật nào (ví dụ không viết \"SKU-BO-002\", \"(SKU-...)\", \"mã ABC\")."
         ];
         if (image) {
             promptLines.push(
