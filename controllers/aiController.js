@@ -199,6 +199,13 @@ exports.askSupport = async (req, res) => {
             ? { mimeType: imageMime, data: rawImageData.replace(/^data:[^,]+,/, "") }
             : null;
 
+        console.log("[ai/support] message len=%d hasImage=%s imageBytes=%d mime=%s",
+            message.length,
+            !!image,
+            image ? image.data.length : 0,
+            image ? image.mimeType : "-"
+        );
+
         if (!message && !image) {
             return sendError(res, 400, "Vui lòng nhập nội dung hoặc gửi ảnh cần hỗ trợ.");
         }
