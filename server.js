@@ -176,6 +176,27 @@ async function ensureRuntimeSchema() {
         });
     }
 
+    if (!userTable.birth_date) {
+        await queryInterface.addColumn("users", "birth_date", {
+            type: DataTypes.DATEONLY,
+            allowNull: true
+        });
+    }
+
+    if (!userTable.gender) {
+        await queryInterface.addColumn("users", "gender", {
+            type: DataTypes.ENUM("male", "female", "other"),
+            allowNull: true
+        });
+    }
+
+    if (!userTable.branch_id) {
+        await queryInterface.addColumn("users", "branch_id", {
+            type: DataTypes.STRING(50),
+            allowNull: true
+        });
+    }
+
     const existingTables = (await queryInterface.showAllTables())
         .map(normalizeTableName)
         .map((tableName) => String(tableName).toLowerCase());
