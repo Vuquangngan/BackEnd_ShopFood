@@ -202,7 +202,11 @@ function toPlainRecipe(recipeInstance) {
         ingredients: (recipe.ingredients || []).map((ingredient) => ({
             ...ingredient,
             product_name: ingredient.product ? ingredient.product.name : null,
-            product_slug: ingredient.product ? ingredient.product.slug : null
+            product_slug: ingredient.product ? ingredient.product.slug : null,
+            product_thumbnail_url: ingredient.product ? ingredient.product.thumbnail_url : null,
+            product_price: ingredient.product ? Number(ingredient.product.sale_price || ingredient.product.price || 0) : null,
+            product_unit: ingredient.product ? (ingredient.product.sale_unit || ingredient.product.stock_unit || null) : null,
+            product_stock: ingredient.product ? Number(ingredient.product.stock_quantity || 0) : null
         }))
     };
 }
@@ -336,7 +340,7 @@ const RecipeModel = {
                         {
                             model: Product,
                             as: "product",
-                            attributes: ["id", "name", "slug"]
+                            attributes: ["id", "name", "slug", "thumbnail_url", "price", "sale_price", "stock_unit", "sale_unit", "stock_quantity"]
                         }
                     ]
                 },
