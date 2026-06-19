@@ -237,6 +237,9 @@ exports.update = async (req, res) => {
         email: nextEmail,
         phone: req.body.phone !== undefined ? String(req.body.phone || "").trim() : undefined,
         avatar_url: req.body.avatar_url !== undefined ? String(req.body.avatar_url || "").trim() : undefined,
+        birth_date: req.body.birth_date !== undefined ? (String(req.body.birth_date || "").trim() || null) : undefined,
+        gender: ["male", "female", "other"].includes(req.body.gender) ? req.body.gender : (req.body.gender === "" || req.body.gender === null ? null : undefined),
+        branch_id: req.body.branch_id !== undefined ? (String(req.body.branch_id || "").trim() || null) : undefined,
         role: ["admin", "staff", "customer"].includes(req.body.role) ? req.body.role : undefined,
         status: ["active", "inactive", "blocked"].includes(req.body.status) ? req.body.status : undefined,
         must_change_password: req.body.must_change_password !== undefined ? Boolean(req.body.must_change_password) : undefined

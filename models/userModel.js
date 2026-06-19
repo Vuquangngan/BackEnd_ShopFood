@@ -1,8 +1,8 @@
 ﻿const { Op } = require("sequelize");
 const { sequelize, Order, User, UserAddress } = require("./index");
 
-const USER_UPDATE_FIELDS = ["username", "email", "phone", "avatar_url"];
-const ADMIN_USER_UPDATE_FIELDS = ["username", "code", "email", "phone", "avatar_url", "role", "status", "must_change_password"];
+const USER_UPDATE_FIELDS = ["username", "email", "phone", "avatar_url", "birth_date", "gender", "branch_id"];
+const ADMIN_USER_UPDATE_FIELDS = ["username", "code", "email", "phone", "avatar_url", "birth_date", "gender", "branch_id", "role", "status", "must_change_password"];
 const ADDRESS_FIELDS = ["full_name", "phone", "address_line", "ward", "district", "city", "is_default"];
 const CUSTOMER_POINT_STEP_AMOUNT = 1000;
 const CUSTOMER_TIERS = [

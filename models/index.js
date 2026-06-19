@@ -16,6 +16,12 @@ const User = sequelize.define("User", {
     must_change_password: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     phone: { type: DataTypes.STRING(20) },
     avatar_url: { type: DataTypes.STRING(255) },
+    birth_date: { type: DataTypes.DATEONLY, allowNull: true },
+    gender: {
+        type: DataTypes.ENUM("male", "female", "other"),
+        allowNull: true
+    },
+    branch_id: { type: DataTypes.STRING(50), allowNull: true },
     role: {
         type: DataTypes.ENUM("admin", "staff", "customer"),
         allowNull: false,
