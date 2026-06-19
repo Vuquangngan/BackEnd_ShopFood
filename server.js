@@ -536,6 +536,12 @@ async function ensureRuntimeSchema() {
             onDelete: "SET NULL"
         });
     }
+    if (!recipeTable.display_ingredients) {
+        await queryInterface.addColumn("recipes", "display_ingredients", {
+            type: DataTypes.TEXT,
+            allowNull: true
+        });
+    }
 
     const [categoryCountRows] = await sequelize.query("SELECT COUNT(*) AS total FROM recipe_categories");
     const categoryCount = Number(categoryCountRows?.[0]?.total || 0);

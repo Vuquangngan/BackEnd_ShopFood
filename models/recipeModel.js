@@ -56,6 +56,49 @@ function normalizeIngredients(ingredients = []) {
         .filter((ingredient) => ingredient.ingredient_name);
 }
 
+function normalizeDisplayIngredients(ingredients = []) {
+    if (!Array.isArray(ingredients)) return [];
+
+    return ingredients
+        .filter(Boolean)
+        .map((ingredient, index) => {
+            if (typeof ingredient === "string") {
+                return {
+                    name: ingredient.trim(),
+                    quantity: "",
+                    unit: "",
+                    note: "",
+                    sort_order: index + 1
+                };
+            }
+
+            return {
+                name: String(ingredient.name || ingredient.ingredient_name || ingredient.ten_nguyen_lieu || "").trim(),
+                quantity: ingredient.quantity ?? ingredient.so_luong ?? "",
+                unit: ingredient.unit || ingredient.don_vi || "",
+                note: ingredient.note || ingredient.ghi_chu || "",
+                sort_order: ingredient.sort_order || ingredient.thu_tu_hien_thi || index + 1
+            };
+        })
+        .filter((ingredient) => ingredient.name);
+}
+
+function parseDisplayIngredients(value) {
+    if (Array.isArray(value)) return normalizeDisplayIngredients(value);
+    if (!value || typeof value !== "string") return [];
+
+    try {
+        return normalizeDisplayIngredients(JSON.parse(value));
+    } catch (error) {
+        return [];
+    }
+}
+
+function stringifyDisplayIngredients(value) {
+    const ingredients = normalizeDisplayIngredients(value);
+    return ingredients.length ? JSON.stringify(ingredients) : null;
+}
+
 function normalizeSteps(steps = []) {
     if (!Array.isArray(steps)) return [];
 
@@ -152,6 +195,7 @@ function toPlainRecipe(recipeInstance) {
 
     return {
         ...recipe,
+        display_ingredients: parseDisplayIngredients(recipe.display_ingredients),
         favorite_count: Number(recipe.favorite_count || 0),
         author_name: recipe.author ? recipe.author.username : null,
         recipe_category_name: recipe.recipe_category ? recipe.recipe_category.name : null,
@@ -174,6 +218,7 @@ function localizeRecipe(recipe) {
     const author = localizeUser(localized.author);
     const recipeCategory = localizeRecipeCategory(localized.recipe_category);
     const ingredients = (localized.ingredients || []).map(localizeIngredient);
+    const displayIngredients = parseDisplayIngredients(localized.display_ingredients);
     const steps = (localized.steps || []).map(localizeStep);
 
     return {
@@ -198,6 +243,7 @@ function localizeRecipe(recipe) {
             author: "tac_gia",
             recipe_category: "danh_muc_cong_thuc",
             ingredients: "danh_sach_nguyen_lieu",
+            display_ingredients: "nguyen_lieu_chuan_bi",
             steps: "cac_buoc_thuc_hien",
             created_at: "ngay_tao",
             updated_at: "ngay_cap_nhat"
@@ -208,6 +254,8 @@ function localizeRecipe(recipe) {
         danh_muc_cong_thuc: recipeCategory,
         ingredients,
         danh_sach_nguyen_lieu: ingredients,
+        display_ingredients: displayIngredients,
+        nguyen_lieu_chuan_bi: displayIngredients,
         steps,
         cac_buoc_thuc_hien: steps
     };
@@ -315,6 +363,9 @@ const RecipeModel = {
                 slug: data.slug,
                 description: data.description || null,
                 image_url: data.image_url || null,
+                display_ingredients: stringifyDisplayIngredients(
+                    data.display_ingredients || data.nguyen_lieu_chuan_bi || data.prep_ingredients || []
+                ),
                 prep_time_minutes: data.prep_time_minutes || 0,
                 cook_time_minutes: data.cook_time_minutes || 0,
                 servings: data.servings || 1,
@@ -372,6 +423,15 @@ const RecipeModel = {
                     updateData[field] = data[field];
                 }
             });
+            if (
+                Object.prototype.hasOwnProperty.call(data, "display_ingredients")
+                || Object.prototype.hasOwnProperty.call(data, "nguyen_lieu_chuan_bi")
+                || Object.prototype.hasOwnProperty.call(data, "prep_ingredients")
+            ) {
+                updateData.display_ingredients = stringifyDisplayIngredients(
+                    data.display_ingredients || data.nguyen_lieu_chuan_bi || data.prep_ingredients || []
+                );
+            }
 
             if (Object.keys(updateData).length) {
                 await recipe.update(updateData, { transaction });

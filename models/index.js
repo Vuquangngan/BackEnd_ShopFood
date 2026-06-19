@@ -551,6 +551,7 @@ const Recipe = sequelize.define("Recipe", {
     slug: { type: DataTypes.STRING(200), allowNull: false, unique: true },
     description: { type: DataTypes.TEXT },
     image_url: { type: DataTypes.STRING(255) },
+    display_ingredients: { type: DataTypes.TEXT },
     prep_time_minutes: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     cook_time_minutes: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     servings: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 1 },
